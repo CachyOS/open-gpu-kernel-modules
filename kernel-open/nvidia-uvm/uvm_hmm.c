@@ -23,6 +23,8 @@
 
 #include "uvm_hmm.h"
 
+#include <linux/version.h>
+
 // Support for HMM ( https://docs.kernel.org/mm/hmm.html ):
 
 #ifdef NVCPU_X86_64
@@ -2694,12 +2696,19 @@ static NV_STATUS dmamap_src_sysmem_pages(uvm_va_block_t *va_block,
                 continue;
             }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
             if (PageSwapCache(src_page)) {
                 // TODO: Bug 4050579: Remove this when swap cached pages can be
                 // migrated.
                 status = NV_WARN_MISMATCHED_TARGET;
                 break;
             }
+#else
+            if (folio_test_swapcache(page_folio(src_page))) {
+                status = NV_WARN_MISMATCHED_TARGET;
+                break;
+            }
+#endif
 
             // If the page is already allocated, it is most likely a mirrored
             // page. Check to be sure it matches what we have recorded. The
