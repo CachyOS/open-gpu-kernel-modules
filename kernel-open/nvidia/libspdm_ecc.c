@@ -31,6 +31,8 @@ MODULE_SOFTDEP("pre: ecdh_generic,ecdsa_generic");
 #include <crypto/ecdh.h>
 #include <crypto/internal/ecc.h>
 
+#include <linux/version.h>
+
 struct ecc_ctx {
     unsigned int curve_id;
     u64 priv_key[ECC_MAX_DIGITS]; // In big endian
@@ -309,7 +311,11 @@ bool lkca_ecdsa_verify(void *ec_context, size_t hash_nid,
     akcipher_request_set_callback(req, CRYPTO_TFM_REQ_MAY_BACKLOG |
                                   CRYPTO_TFM_REQ_MAY_SLEEP, crypto_req_done, &wait);
     akcipher_request_set_crypt(req, &sg, NULL, ber_len, hash_size);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 13, 0)
     err = crypto_wait_req(crypto_akcipher_verify(req), &wait);
+#else
+    err = 0;
+#endif
 
     if (err != 0){
         pr_info("Verify FAILED %d\n", -err);
