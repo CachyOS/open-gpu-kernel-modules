@@ -78,6 +78,11 @@ typedef struct nv_timer nv_drm_timer;
 #define NV_DRM_FBDEV_TTM_AVAILABLE
 #endif
 
+// AOSC OS: Always enable DRM fbdev
+// FIXME: Add config test for drm helper functions.
+// The implementation uses drm_client_register, which is added in v5.2-rc1.
+#define NV_DRM_FBDEV_AVAILABLE
+
 struct page;
 
 /* Set to true when the atomic modeset feature is enabled. */
