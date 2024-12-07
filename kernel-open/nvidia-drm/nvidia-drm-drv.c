@@ -65,7 +65,16 @@
 #endif
 
 #if defined(NV_DRM_FBDEV_AVAILABLE)
+// Commit 7283f862bd99 ("drm: Implement DRM aperture helpers under video/")
+//  moved implementation of drm_aperture_... to linux/aperture.c.
+// Commit 689274a56c0c ("drm: Remove DRM aperture helpers")
+//  removed drm/drm_aperture.h.
+#if defined(NV_DRM_APERTURE_REMOVE_CONFLICTING_PCI_FRAMEBUFFERS_PRESENT)
 #include <drm/drm_aperture.h>
+#endif
+#if defined(NV_APERTURE_REMOVE_CONFLICTING_PCI_DEVICES_PRESENT)
+#include <linux/aperture.h>
+#endif
 #include <drm/drm_fb_helper.h>
 #endif
 
@@ -2013,10 +2022,16 @@ void nv_drm_register_drm_device(const nv_gpu_info_t *gpu_info)
         if (bus_is_pci) {
             struct pci_dev *pdev = to_pci_dev(device);
 
+#if defined(NV_DRM_APERTURE_REMOVE_CONFLICTING_PCI_FRAMEBUFFERS_PRESENT)
+            printk(KERN_INFO "%s: using drm_aperture for old kernels\n", nv_drm_driver.name);
 #if defined(NV_DRM_APERTURE_REMOVE_CONFLICTING_PCI_FRAMEBUFFERS_HAS_DRIVER_ARG)
             drm_aperture_remove_conflicting_pci_framebuffers(pdev, &nv_drm_driver);
 #else
             drm_aperture_remove_conflicting_pci_framebuffers(pdev, nv_drm_driver.name);
+#endif
+#elif defined(NV_APERTURE_REMOVE_CONFLICTING_PCI_DEVICES_PRESENT)
+            printk(KERN_INFO "%s: using linux/aperture workaround for Linux 6.13+\n", nv_drm_driver.name);
+            aperture_remove_conflicting_pci_devices(pdev, nv_drm_driver.name);
 #endif
             nvKms->framebufferConsoleDisabled(nv_dev->pDevice);
         }

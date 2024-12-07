@@ -34,6 +34,7 @@ NV_HEADER_PRESENCE_TESTS = \
   generated/autoconf.h \
   generated/compile.h \
   generated/utsrelease.h \
+  linux/aperture.h \
   linux/efi.h \
   linux/kconfig.h \
   linux/platform/tegra/mc_utils.h \

@@ -6615,6 +6615,8 @@ compile_test() {
             # Added by commit 2916059147ea ("drm/aperture: Add infrastructure
             # for aperture ownership") in v5.14.
             #
+            # Removed by commit 689274a56c0c ("drm: Remove DRM aperture helpers") in v6.13.
+            #
             CODE="
             #if defined(NV_DRM_DRM_APERTURE_H_PRESENT)
             #include <drm/drm_aperture.h>
@@ -6624,6 +6626,23 @@ compile_test() {
             }"
 
             compile_check_conftest "$CODE" "NV_DRM_APERTURE_REMOVE_CONFLICTING_PCI_FRAMEBUFFERS_PRESENT" "" "functions"
+        ;;
+
+        aperture_remove_conflicting_pci_devices)
+            #
+            # Determine whether aperture_remove_conflicting_pci_devices is present.
+            #
+            # Added by commit 7283f862bd99 ("drm: Implement DRM aperture helpers under video/") in v6.0.
+            #
+            CODE="
+            #if defined(NV_LINUX_APERTURE_H_PRESENT)
+            #include <linux/aperture.h>
+            #endif
+            void conftest_aperture_remove_conflicting_pci_devices(void) {
+                aperture_remove_conflicting_pci_devices();
+            }"
+
+            compile_check_conftest "$CODE" "NV_APERTURE_REMOVE_CONFLICTING_PCI_DEVICES_PRESENT" "" "functions"
         ;;
 
         drm_aperture_remove_conflicting_pci_framebuffers_has_driver_arg)
