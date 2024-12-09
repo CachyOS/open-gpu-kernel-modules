@@ -22,6 +22,7 @@
  */
 
 #include <linux/module.h>  // for MODULE_FIRMWARE
+#include <linux/version.h>
 
 // must precede "nv.h" and "nv-firmware.h" includes
 #define NV_FIRMWARE_FOR_NAME(name)  "nvidia/" NV_VERSION_STRING "/" name ".bin"
@@ -127,7 +128,11 @@ MODULE_ALIAS_CHARDEV_MAJOR(NV_MAJOR_DEVICE_NUMBER);
  * DMA_BUF namespace is added by commit id 16b0314aa746
  * ("dma-buf: move dma-buf symbols into the DMA_BUF module namespace") in 5.16
  */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 13, 0)
+MODULE_IMPORT_NS("DMA_BUF");
+#else
 MODULE_IMPORT_NS(DMA_BUF);
+#endif
 #endif  // defined(MODULE_IMPORT_NS)
 
 const NvBool nv_is_rm_firmware_supported_os = NV_TRUE;
