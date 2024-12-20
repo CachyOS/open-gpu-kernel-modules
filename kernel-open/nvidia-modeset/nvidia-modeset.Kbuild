@@ -40,9 +40,6 @@ NV_KERNEL_MODULE_TARGETS += $(NVIDIA_MODESET_KO)
 NVIDIA_MODESET_BINARY_OBJECT := $(src)/nvidia-modeset/nv-modeset-kernel.o_binary
 NVIDIA_MODESET_BINARY_OBJECT_O := nvidia-modeset/nv-modeset-kernel.o
 
-quiet_cmd_symlink = SYMLINK $@
-cmd_symlink = ln -sf $< $@
-
 targets += $(NVIDIA_MODESET_BINARY_OBJECT_O)
 
 $(obj)/$(NVIDIA_MODESET_BINARY_OBJECT_O): $(NVIDIA_MODESET_BINARY_OBJECT) FORCE
@@ -81,7 +78,7 @@ $(call ASSIGN_PER_OBJ_CFLAGS, $(NVIDIA_MODESET_OBJECTS), $(NVIDIA_MODESET_CFLAGS
 
 NVIDIA_MODESET_INTERFACE := nvidia-modeset/nv-modeset-interface.o
 
-# Linux kernel v5.12 and later looks at "always-y", Linux kernel versions 
+# Linux kernel v5.12 and later looks at "always-y", Linux kernel versions
 # before v5.6 looks at "always"; kernel versions between v5.12 and v5.6
 # look at both.
 
