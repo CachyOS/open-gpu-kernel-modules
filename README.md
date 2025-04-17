@@ -1,7 +1,7 @@
 # NVIDIA Linux Open GPU Kernel Module Source
 
 This is the source release of the NVIDIA Linux open GPU kernel modules,
-version 570.133.07.
+version 575.51.02.
 
 
 ## How to Build
@@ -17,7 +17,7 @@ as root:
 
 Note that the kernel modules built here must be used with GSP
 firmware and user-space NVIDIA GPU driver components from a corresponding
-570.133.07 driver release.  This can be achieved by installing
+575.51.02 driver release.  This can be achieved by installing
 the NVIDIA GPU driver from the .run file using the `--no-kernel-modules`
 option.  E.g.,
 
@@ -185,7 +185,7 @@ table below).
 For details on feature support and limitations, see the NVIDIA GPU driver
 end user README here:
 
-https://us.download.nvidia.com/XFree86/Linux-x86_64/570.133.07/README/kernel_open.html
+https://us.download.nvidia.com/XFree86/Linux-x86_64/575.51.02/README/kernel_open.html
 
 For vGPU support, please refer to the README.vgpu packaged in the vGPU Host
 Package for more details.
@@ -350,6 +350,7 @@ Subsystem Device ID.
 | Quadro RTX 4000 with Max-Q Design                       | 1EB6 1462 12C6 |
 | Quadro RTX 4000 with Max-Q Design                       | 1EB6 17AA 22B8 |
 | Quadro RTX 4000 with Max-Q Design                       | 1EB6 17AA 22BA |
+| Tesla T4                                                | 1EB8 10DE 12A2 |
 | NVIDIA GeForce RTX 2070 SUPER                           | 1EC2           |
 | NVIDIA GeForce RTX 2070 SUPER                           | 1EC7           |
 | NVIDIA GeForce RTX 2080                                 | 1ED0           |
@@ -943,11 +944,11 @@ Subsystem Device ID.
 | NVIDIA B200                                             | 2901 10DE 1999 |
 | NVIDIA B200                                             | 2901 10DE 199B |
 | NVIDIA B200                                             | 2901 10DE 20DA |
-| NVIDIA HGX GB200                                        | 2941 10DE 2046 |
-| NVIDIA HGX GB200                                        | 2941 10DE 20CA |
-| NVIDIA HGX GB200                                        | 2941 10DE 20D5 |
-| NVIDIA HGX GB200                                        | 2941 10DE 21C9 |
-| NVIDIA HGX GB200                                        | 2941 10DE 21CA |
+| NVIDIA GB200                                            | 2941 10DE 2046 |
+| NVIDIA GB200                                            | 2941 10DE 20CA |
+| NVIDIA GB200                                            | 2941 10DE 20D5 |
+| NVIDIA GB200                                            | 2941 10DE 21C9 |
+| NVIDIA GB200                                            | 2941 10DE 21CA |
 | NVIDIA GeForce RTX 5090                                 | 2B85           |
 | NVIDIA GeForce RTX 5090 D                               | 2B87           |
 | NVIDIA RTX PRO 6000 Blackwell Workstation Edition       | 2BB1 1028 204B |
@@ -964,6 +965,7 @@ Subsystem Device ID.
 | NVIDIA GeForce RTX 5080 Laptop GPU                      | 2C19           |
 | NVIDIA GeForce RTX 5090 Laptop GPU                      | 2C58           |
 | NVIDIA GeForce RTX 5080 Laptop GPU                      | 2C59           |
+| NVIDIA GeForce RTX 5060 Ti                              | 2D04           |
 | NVIDIA GeForce RTX 5070                                 | 2F04           |
 | NVIDIA GeForce RTX 5070 Ti Laptop GPU                   | 2F18           |
 | NVIDIA GeForce RTX 5070 Ti Laptop GPU                   | 2F58           |

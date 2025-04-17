@@ -1,13 +1,15 @@
 
 #ifndef _G_GPU_ACCT_NVOC_H_
 #define _G_GPU_ACCT_NVOC_H_
-#include "nvoc/runtime.h"
 
 // Version of generated metadata structures
 #ifdef NVOC_METADATA_VERSION
 #undef NVOC_METADATA_VERSION
 #endif
-#define NVOC_METADATA_VERSION 1
+#define NVOC_METADATA_VERSION 2
+
+#include "nvoc/runtime.h"
+#include "nvoc/rtti.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -49,7 +51,6 @@ extern "C" {
 #include "ctrl/ctrl0000/ctrl0000gpuacct.h"
 #include "ctrl/ctrl0000/ctrl0000gpu.h" // NV0000_CTRL_GPU_MAX_ATTACHED_GPUS
 #include "ctrl/ctrl2080/ctrl2080perf.h" // NV2080_CTRL_PERF_GET_GPUMON_PERFMON_UTIL_SAMPLES_V2_PARAMS
-#include "rmapi/client.h"
 
 typedef struct TMR_EVENT TMR_EVENT;
 
@@ -75,7 +76,6 @@ typedef struct
 {
     NvU32  procId;      // Pid of the process.
     NvU32  procType;    // Type of the process.
-    struct RmClient *pClient;  // Process' RmClient.
     NvU32  gpuUtil;     // Process's average GR engine utilization.
     NvU64  sumUtil;     // Running sum of process's GR engine utilization.
     NvU32  fbUtil;      // Process's average FB bandwidth utilization.
@@ -144,10 +144,18 @@ typedef struct
 #endif
 
 
+// Metadata with per-class RTTI with ancestor(s)
+struct NVOC_METADATA__GpuAccounting;
+struct NVOC_METADATA__Object;
+
+
 struct GpuAccounting {
 
-    // Metadata
-    const struct NVOC_RTTI *__nvoc_rtti;
+    // Metadata starts with RTTI structure.
+    union {
+         const struct NVOC_METADATA__GpuAccounting *__nvoc_metadata_ptr;
+         const struct NVOC_RTTI *__nvoc_rtti;
+    };
 
     // Parent (i.e. superclass or base class) objects
     struct Object __nvoc_base_Object;
@@ -158,6 +166,13 @@ struct GpuAccounting {
 
     // Data members
     GPUACCT_GPU_INSTANCE_INFO gpuInstanceInfo[32];
+};
+
+
+// Metadata with per-class RTTI with ancestor(s)
+struct NVOC_METADATA__GpuAccounting {
+    const struct NVOC_RTTI rtti;
+    const struct NVOC_METADATA__Object metadata__Object;
 };
 
 #ifndef __NVOC_CLASS_GpuAccounting_TYPEDEF__
@@ -176,10 +191,10 @@ extern const struct NVOC_CLASS_DEF __nvoc_class_def_GpuAccounting;
     ((pThis)->__nvoc_pbase_GpuAccounting)
 
 #ifdef __nvoc_gpu_acct_h_disabled
-#define __dynamicCast_GpuAccounting(pThis) ((GpuAccounting*)NULL)
+#define __dynamicCast_GpuAccounting(pThis) ((GpuAccounting*) NULL)
 #else //__nvoc_gpu_acct_h_disabled
 #define __dynamicCast_GpuAccounting(pThis) \
-    ((GpuAccounting*)__nvoc_dynamicCast(staticCast((pThis), Dynamic), classInfo(GpuAccounting)))
+    ((GpuAccounting*) __nvoc_dynamicCast(staticCast((pThis), Dynamic), classInfo(GpuAccounting)))
 #endif //__nvoc_gpu_acct_h_disabled
 
 NV_STATUS __nvoc_objCreateDynamic_GpuAccounting(GpuAccounting**, Dynamic*, NvU32, va_list);
@@ -242,15 +257,15 @@ static inline NV_STATUS gpuacctClearAccountingData(struct GpuAccounting *arg1, N
 #define gpuacctClearAccountingData(arg1, arg2, arg3) gpuacctClearAccountingData_IMPL(arg1, arg2, arg3)
 #endif //__nvoc_gpu_acct_h_disabled
 
-NV_STATUS gpuacctStartGpuAccounting_IMPL(struct GpuAccounting *arg1, NvU32 arg2, NvU32 arg3, NvU32 arg4, struct RmClient *arg5);
+NV_STATUS gpuacctStartGpuAccounting_IMPL(struct GpuAccounting *arg1, NvU32 arg2, NvU32 arg3, NvU32 arg4);
 
 #ifdef __nvoc_gpu_acct_h_disabled
-static inline NV_STATUS gpuacctStartGpuAccounting(struct GpuAccounting *arg1, NvU32 arg2, NvU32 arg3, NvU32 arg4, struct RmClient *arg5) {
+static inline NV_STATUS gpuacctStartGpuAccounting(struct GpuAccounting *arg1, NvU32 arg2, NvU32 arg3, NvU32 arg4) {
     NV_ASSERT_FAILED_PRECOMP("GpuAccounting was disabled!");
     return NV_ERR_NOT_SUPPORTED;
 }
 #else //__nvoc_gpu_acct_h_disabled
-#define gpuacctStartGpuAccounting(arg1, arg2, arg3, arg4, arg5) gpuacctStartGpuAccounting_IMPL(arg1, arg2, arg3, arg4, arg5)
+#define gpuacctStartGpuAccounting(arg1, arg2, arg3, arg4) gpuacctStartGpuAccounting_IMPL(arg1, arg2, arg3, arg4)
 #endif //__nvoc_gpu_acct_h_disabled
 
 NV_STATUS gpuacctStopGpuAccounting_IMPL(struct GpuAccounting *arg1, NvU32 arg2, NvU32 arg3, NvU32 arg4);
