@@ -23,6 +23,8 @@
 #ifndef __NV_MM_H__
 #define __NV_MM_H__
 
+#include <linux/version.h>
+
 #include "conftest.h"
 
 #if !defined(NV_VM_FAULT_T_IS_PRESENT)
@@ -299,19 +301,27 @@ static inline struct rw_semaphore *nv_mmap_get_lock(struct mm_struct *mm)
 
 static inline void nv_vm_flags_set(struct vm_area_struct *vma, vm_flags_t flags)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+    vm_flags_reset(vma, vma->vm_flags | flags);
+#else
 #if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS)
     vm_flags_set(vma, flags);
 #else
     vma->vm_flags |= flags;
 #endif
+#endif
 }
 
 static inline void nv_vm_flags_clear(struct vm_area_struct *vma, vm_flags_t flags)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+    vm_flags_reset(vma, vma->vm_flags & ~flags);
+#else
 #if defined(NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS)
     vm_flags_clear(vma, flags);
 #else
     vma->vm_flags &= ~flags;
+#endif
 #endif
 }
 
