@@ -21,6 +21,8 @@
 
 *******************************************************************************/
 
+#include <linux/version.h>
+
 #include "uvm_common.h"
 #include "uvm_linux.h"
 #include "uvm_types.h"
@@ -360,7 +362,11 @@ static NV_STATUS alloc_device_p2p_mem(uvm_gpu_t *gpu,
         // a reference to them, so take one now if using DEVICE_COHERENT pages.
         if (gpu->parent->cdmm_enabled) {
             get_page(page);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 18, 0)
             get_dev_pagemap(page_to_pfn(page), NULL);
+#else
+            get_dev_pagemap(page_to_pfn(page));
+#endif /* < 6.18 */
         }
 #else
         // CDMM P2PDMA will never be enabled for this case
