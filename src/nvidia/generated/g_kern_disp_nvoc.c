@@ -302,6 +302,7 @@ void __nvoc_init_dataField_KernelDisplay(KernelDisplay *pThis, RmHalspecOwner *p
         pThis->setProperty(pThis, PDB_PROP_KDISP_HAS_SEPARATE_LOW_LATENCY_LINE, NV_FALSE);
     }
     pThis->setProperty(pThis, PDB_PROP_KDISP_ENABLE_INLINE_INTR_SERVICE, NV_TRUE);
+    pThis->setProperty(pThis, PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED, (1));
 
     pThis->pStaticInfo = ((void *)0);
 

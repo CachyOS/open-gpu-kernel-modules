@@ -28,6 +28,7 @@
 #include "kernel/core/locks.h"
 #include "kernel/gpu/subdevice/subdevice.h"
 #include "vgpu/rpc.h"
+#include "virtualization/hypervisor/hypervisor.h"
 #include "kernel/mem_mgr/gpu_vaspace.h"
 #include "kernel/gpu/mem_mgr/mem_mgr.h"
 #include "kernel/gpu/fifo/kernel_channel_group.h"
@@ -520,7 +521,8 @@ kgrobjShouldCleanup_PHYSICAL
     ChannelDescendant *pChannelDescendant = staticCast(pKernelGraphicsObject, ChannelDescendant);
     NvU32              gfid = kchannelGetGfid(pChannelDescendant->pKernelChannel);
 
-    return !gpuIsClientRmAllocatedCtxBufferEnabled(pGpu) || (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid));
+    return !gpuIsClientRmAllocatedCtxBufferEnabled(pGpu) || (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid) &&
+                                                             !(IS_MIG_IN_USE(pGpu) && hypervisorIsType(OS_HYPERVISOR_VMWARE)));
 }
 
 /*!

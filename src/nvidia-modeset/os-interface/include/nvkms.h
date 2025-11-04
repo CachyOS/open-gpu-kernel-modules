@@ -104,6 +104,8 @@ NvBool nvKmsKapiGetFunctionsTableInternal
 );
 
 void nvKmsKapiSuspendResume(NvBool suspend);
+void nvKmsKapiRemove(NvU32 gpuId);
+void nvKmsKapiProbe(const nv_gpu_info_t *gpu_info);
 
 NvBool nvKmsGetBacklight(NvU32 display_id, void *drv_priv, NvU32 *brightness);
 NvBool nvKmsSetBacklight(NvU32 display_id, void *drv_priv, NvU32 brightness);

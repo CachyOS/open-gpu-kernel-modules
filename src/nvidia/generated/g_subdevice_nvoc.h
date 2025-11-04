@@ -155,7 +155,7 @@ struct Subdevice {
     struct Notifier *__nvoc_pbase_Notifier;    // notify super
     struct Subdevice *__nvoc_pbase_Subdevice;    // subdevice
 
-    // Vtable with 49 per-object function pointers
+    // Vtable with 50 per-object function pointers
     NV_STATUS (*__subdeviceCtrlCmdBiosGetInfoV2__)(struct Subdevice * /*this*/, NV2080_CTRL_BIOS_GET_INFO_V2_PARAMS *);  // halified (2 hals) exported (id=0x20800810) body
     NV_STATUS (*__subdeviceCtrlCmdBiosGetSKUInfo__)(struct Subdevice * /*this*/, NV2080_CTRL_BIOS_GET_SKU_INFO_PARAMS *);  // halified (2 hals) exported (id=0x20800808)
     NV_STATUS (*__subdeviceCtrlCmdBiosGetPostTime__)(struct Subdevice * /*this*/, NV2080_CTRL_CMD_BIOS_GET_POST_TIME_PARAMS *);  // halified (2 hals) exported (id=0x20800809) body
@@ -186,6 +186,7 @@ struct Subdevice {
     NV_STATUS (*__subdeviceCtrlCmdFifoDisableChannelsForKeyRotation__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_DISABLE_CHANNELS_FOR_KEY_ROTATION_PARAMS *);  // halified (2 hals) exported (id=0x2080111a) body
     NV_STATUS (*__subdeviceCtrlCmdFifoDisableChannelsForKeyRotationV2__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_DISABLE_CHANNELS_FOR_KEY_ROTATION_V2_PARAMS *);  // halified (2 hals) exported (id=0x2080111b) body
     NV_STATUS (*__subdeviceCtrlCmdFifoObjschedGetCaps__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_OBJSCHED_GET_CAPS_PARAMS *);  // halified (2 hals) exported (id=0x20801122) body
+    NV_STATUS (*__subdeviceCtrlCmdFifoConfigCtxswTimeout__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS *);  // halified (2 hals) exported (id=0x20801110) body
     NV_STATUS (*__subdeviceCtrlCmdFifoGetDeviceInfoTable__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_GET_DEVICE_INFO_TABLE_PARAMS *);  // halified (2 hals) exported (id=0x20801112) body
     NV_STATUS (*__subdeviceCtrlCmdFifoUpdateChannelInfo__)(struct Subdevice * /*this*/, NV2080_CTRL_FIFO_UPDATE_CHANNEL_INFO_PARAMS *);  // halified (2 hals) exported (id=0x20801116) body
     NV_STATUS (*__subdeviceCtrlCmdKGrCtxswPmMode__)(struct Subdevice * /*this*/, NV2080_CTRL_GR_CTXSW_PM_MODE_PARAMS *);  // halified (2 hals) exported (id=0x20801207) body
@@ -6410,6 +6411,9 @@ static inline NV_STATUS subdeviceSpdmRetrieveTranscript(struct Subdevice *pSubde
 #define subdeviceCtrlCmdFifoObjschedGetCaps_FNPTR(pSubdevice) pSubdevice->__subdeviceCtrlCmdFifoObjschedGetCaps__
 #define subdeviceCtrlCmdFifoObjschedGetCaps(pSubdevice, pParams) subdeviceCtrlCmdFifoObjschedGetCaps_DISPATCH(pSubdevice, pParams)
 #define subdeviceCtrlCmdFifoObjschedGetCaps_HAL(pSubdevice, pParams) subdeviceCtrlCmdFifoObjschedGetCaps_DISPATCH(pSubdevice, pParams)
+#define subdeviceCtrlCmdFifoConfigCtxswTimeout_FNPTR(pSubdevice) pSubdevice->__subdeviceCtrlCmdFifoConfigCtxswTimeout__
+#define subdeviceCtrlCmdFifoConfigCtxswTimeout(pSubdevice, pParams) subdeviceCtrlCmdFifoConfigCtxswTimeout_DISPATCH(pSubdevice, pParams)
+#define subdeviceCtrlCmdFifoConfigCtxswTimeout_HAL(pSubdevice, pParams) subdeviceCtrlCmdFifoConfigCtxswTimeout_DISPATCH(pSubdevice, pParams)
 #define subdeviceCtrlCmdFifoGetDeviceInfoTable_FNPTR(pSubdevice) pSubdevice->__subdeviceCtrlCmdFifoGetDeviceInfoTable__
 #define subdeviceCtrlCmdFifoGetDeviceInfoTable(pSubdevice, pParams) subdeviceCtrlCmdFifoGetDeviceInfoTable_DISPATCH(pSubdevice, pParams)
 #define subdeviceCtrlCmdFifoGetDeviceInfoTable_HAL(pSubdevice, pParams) subdeviceCtrlCmdFifoGetDeviceInfoTable_DISPATCH(pSubdevice, pParams)
@@ -6653,6 +6657,10 @@ static inline NV_STATUS subdeviceCtrlCmdFifoDisableChannelsForKeyRotationV2_DISP
 
 static inline NV_STATUS subdeviceCtrlCmdFifoObjschedGetCaps_DISPATCH(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_OBJSCHED_GET_CAPS_PARAMS *pParams) {
     return pSubdevice->__subdeviceCtrlCmdFifoObjschedGetCaps__(pSubdevice, pParams);
+}
+
+static inline NV_STATUS subdeviceCtrlCmdFifoConfigCtxswTimeout_DISPATCH(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS *pParams) {
+    return pSubdevice->__subdeviceCtrlCmdFifoConfigCtxswTimeout__(pSubdevice, pParams);
 }
 
 static inline NV_STATUS subdeviceCtrlCmdFifoGetDeviceInfoTable_DISPATCH(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_GET_DEVICE_INFO_TABLE_PARAMS *pParams) {
@@ -7425,6 +7433,14 @@ static inline NV_STATUS subdeviceCtrlCmdFifoObjschedGetCaps_5baef9(struct Subdev
 NV_STATUS subdeviceCtrlCmdFifoGetChannelGroupUniqueIdInfo_IMPL(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_GET_CHANNEL_GROUP_UNIQUE_ID_INFO_PARAMS *pGetChannelGrpUidParams);
 
 NV_STATUS subdeviceCtrlCmdFifoQueryChannelUniqueId_IMPL(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_QUERY_CHANNEL_UNIQUE_ID_PARAMS *pQueryChannelUidParams);
+
+static inline NV_STATUS subdeviceCtrlCmdFifoConfigCtxswTimeout_56cd7a(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS *pParams) {
+    return NV_OK;
+}
+
+static inline NV_STATUS subdeviceCtrlCmdFifoConfigCtxswTimeout_5baef9(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS *pParams) {
+    NV_ASSERT_OR_RETURN_PRECOMP(0, NV_ERR_NOT_SUPPORTED);
+}
 
 NV_STATUS subdeviceCtrlCmdFifoGetDeviceInfoTable_VF(struct Subdevice *pSubdevice, NV2080_CTRL_FIFO_GET_DEVICE_INFO_TABLE_PARAMS *pParams);
 

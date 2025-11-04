@@ -760,13 +760,16 @@ NV_STATUS GspMsgQueueReceiveStatus(MESSAGE_QUEUE_INFO *pMQI, OBJGPU *pGpu)
     }
 
 exit:
-    pMQI->rxSeqNum++;
 
     nRet = msgqRxMarkConsumed(pMQI->hQueue, nElements);
     if (nRet < 0)
     {
         NV_PRINTF(LEVEL_ERROR, "msgqRxMarkConsumed failed: %d\n", nRet);
         nvStatus = NV_ERR_GENERIC;
+    }
+    else
+    {
+        pMQI->rxSeqNum++;
     }
 
     return nvStatus;

@@ -851,6 +851,12 @@ kgspPopulateWprMeta_TU102
         pKernelGsp->bBootGspRmWithBoostClocks = NV_FALSE;
     }
 
+    if ((pGpu->idInfo.PCIDeviceID == 0x20BB10DE) &&
+        (pGpu->idInfo.PCISubDeviceID == 0x14A110DE))
+    {
+        pKernelGsp->bBootGspRmWithBoostClocks = NV_FALSE;
+    }
+
     pWprMeta->bootCount = 0;
     pWprMeta->verified = 0;
     pWprMeta->revision = GSP_FW_WPR_META_REVISION;

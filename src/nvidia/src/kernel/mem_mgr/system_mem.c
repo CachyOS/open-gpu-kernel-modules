@@ -34,6 +34,8 @@
 #include "core/system.h"
 #include "ctrl/ctrl0000/ctrl0000gpu.h"
 
+#include "gpu/mem_mgr/sysmem_scrub.h"
+
 #include "gpu/mem_sys/kern_mem_sys.h"
 
 #include "kernel/gpu/rc/kernel_rc.h"
@@ -826,15 +828,25 @@ failed:
 
 void sysmemDestruct_IMPL(SystemMemory *pSystemMemory)
 {
-    Memory             *pMemory  = staticCast(pSystemMemory, Memory);
-    OBJGPU             *pGpu     = pMemory->pGpu;
-    MEMORY_DESCRIPTOR  *pMemDesc = pMemory->pMemDesc;
+    Memory             *pMemory        = staticCast(pSystemMemory, Memory);
+    MEMORY_DESCRIPTOR  *pMemDesc       = pMemory->pMemDesc;
+    OBJGPU             *pGpu           = pMemory->pMemDesc->pGpu;
+    MemoryManager      *pMemoryManager = GPU_GET_MEMORY_MANAGER(pGpu);
 
-    if ((pMemDesc != NULL) &&
-        memdescGetFlag(pMemDesc, MEMDESC_FLAGS_ALLOC_FROM_SCANOUT_CARVEOUT))
+    // TODO: fix broken dup behavior
+    if (memdescGetFlag(pMemDesc, MEMDESC_FLAGS_ALLOC_FROM_SCANOUT_CARVEOUT))
     {
         memmgrFreeScanoutCarveoutRegionResources(GPU_GET_MEMORY_MANAGER(pGpu),
                                                  memdescGetPte(pMemDesc, AT_CPU, 0));
+        return;
     }
 
+    if (pMemDesc->DupCount > 1)
+        return;
+
+    if (pMemory->pHwResource != NULL && pMemory->pHwResource->hwResId != 0)
+    {
+        NV_ASSERT_OR_RETURN_VOID(pMemoryManager->pSysmemScrubber != NULL);
+        sysmemscrubScrubAndFree(pMemoryManager->pSysmemScrubber, pMemDesc);
+    }
 }

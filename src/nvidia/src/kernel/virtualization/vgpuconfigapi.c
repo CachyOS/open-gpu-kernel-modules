@@ -1317,6 +1317,7 @@ vgpuconfigapiCtrlCmdVgpuConfigGetFreeSwizzId_IMPL
         NV_ASSERT_OK_OR_RETURN(
             kvgpumgrGetVgpuTypeInfo(pParams->vgpuTypeId, &vgpuTypeInfo));
 
+        pParams->swizzId = KMIGMGR_SWIZZID_INVALID;
         NV_ASSERT_OK_OR_RETURN(
             kvgpumgrGetSwizzId(pGpu, pPhysGpuInfo, partitionFlag, vgpuTypeInfo, &pParams->swizzId));
     }

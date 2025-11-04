@@ -71,6 +71,45 @@ void nvidia_modeset_resume(NvU32 gpuId)
     }
 }
 
+void nvidia_modeset_remove(NvU32 gpuId)
+{
+    if (nv_modeset_callbacks && nv_modeset_callbacks->remove)
+    {
+        nv_modeset_callbacks->remove(gpuId);
+    }
+}
+
+static void nvidia_modeset_get_gpu_info(nv_gpu_info_t *gpu_info,
+                                        const nv_linux_state_t *nvl)
+{
+    nv_state_t *nv = NV_STATE_PTR(nvl);
+    int numa_status = nv_get_numa_status(nvl);
+
+    gpu_info->gpu_id = nv->gpu_id;
+
+    gpu_info->pci_info.domain   = nv->pci_info.domain;
+    gpu_info->pci_info.bus      = nv->pci_info.bus;
+    gpu_info->pci_info.slot     = nv->pci_info.slot;
+    gpu_info->pci_info.function = nv->pci_info.function;
+
+    gpu_info->needs_numa_setup =
+        numa_status != NV_IOCTL_NUMA_STATUS_DISABLED &&
+        numa_status != NV_IOCTL_NUMA_STATUS_ONLINE;
+
+    gpu_info->os_device_ptr = nvl->dev;
+}
+
+void nvidia_modeset_probe(const nv_linux_state_t *nvl)
+{
+    if (nv_modeset_callbacks && nv_modeset_callbacks->probe)
+    {
+        nv_gpu_info_t gpu_info;
+
+        nvidia_modeset_get_gpu_info(&gpu_info, nvl);
+        nv_modeset_callbacks->probe(&gpu_info);
+    }
+}
+
 static NvU32 nvidia_modeset_enumerate_gpus(nv_gpu_info_t *gpu_info)
 {
     nv_linux_state_t *nvl;
@@ -82,9 +121,6 @@ static NvU32 nvidia_modeset_enumerate_gpus(nv_gpu_info_t *gpu_info)
 
     for (nvl = nv_linux_devices; nvl != NULL; nvl = nvl->next)
     {
-        nv_state_t *nv = NV_STATE_PTR(nvl);
-        int numa_status = nv_get_numa_status(nvl);
-
         /*
          * The gpu_info[] array has NV_MAX_GPUS elements.  Fail if there
          * are more GPUs than that.
@@ -96,19 +132,7 @@ static NvU32 nvidia_modeset_enumerate_gpus(nv_gpu_info_t *gpu_info)
             break;
         }
 
-        gpu_info[count].gpu_id = nv->gpu_id;
-
-        gpu_info[count].pci_info.domain   = nv->pci_info.domain;
-        gpu_info[count].pci_info.bus      = nv->pci_info.bus;
-        gpu_info[count].pci_info.slot     = nv->pci_info.slot;
-        gpu_info[count].pci_info.function = nv->pci_info.function;
-
-        gpu_info->needs_numa_setup =
-            numa_status != NV_IOCTL_NUMA_STATUS_DISABLED &&
-            numa_status != NV_IOCTL_NUMA_STATUS_ONLINE;
-
-        gpu_info[count].os_device_ptr = nvl->dev;
-
+        nvidia_modeset_get_gpu_info(&gpu_info[count], nvl);
         count++;
     }
 

@@ -248,11 +248,12 @@ typedef void (*uvm_hal_host_tlb_flush_prefetch_t)(uvm_push_t *push);
 void uvm_hal_maxwell_host_tlb_flush_prefetch_unsupported(uvm_push_t *push);
 void uvm_hal_blackwell_host_tlb_flush_prefetch(uvm_push_t *push);
 
-// L2 cache invalidate for non-coherent sysmem for systems with write back cache.
-// These are iGPUs as of now.
-typedef void (*uvm_hal_host_l2_invalidate_noncoh_sysmem_t)(uvm_push_t *push);
-void uvm_hal_blackwell_host_l2_invalidate_noncoh_sysmem(uvm_push_t *push);
-void uvm_hal_host_l2_invalidate_noncoh_sysmem_unsupported(uvm_push_t *push);
+// Performs L2 cache invalidation for peer or system memory.
+typedef void (*uvm_hal_host_l2_invalidate_t)(uvm_push_t *push, uvm_aperture_t aperture);
+void uvm_hal_blackwell_host_l2_invalidate(uvm_push_t *push, uvm_aperture_t aperture);
+
+void uvm_hal_ampere_host_l2_invalidate(uvm_push_t *push, uvm_aperture_t aperture);
+void uvm_hal_host_l2_invalidate_unsupported(uvm_push_t *push, uvm_aperture_t aperture);
 
 // By default all semaphore release operations include a membar sys before the
 // operation. This can be affected by using UVM_PUSH_FLAG_NEXT_* flags with
@@ -822,7 +823,7 @@ struct uvm_host_hal_struct
     uvm_hal_host_tlb_invalidate_phys_t tlb_invalidate_phys;
     uvm_hal_host_tlb_invalidate_test_t tlb_invalidate_test;
     uvm_hal_host_tlb_flush_prefetch_t tlb_flush_prefetch;
-    uvm_hal_host_l2_invalidate_noncoh_sysmem_t l2_invalidate_noncoh_sysmem;
+    uvm_hal_host_l2_invalidate_t l2_invalidate;
     uvm_hal_fault_buffer_replay_t replay_faults;
     uvm_hal_fault_cancel_global_t cancel_faults_global;
     uvm_hal_fault_cancel_targeted_t cancel_faults_targeted;

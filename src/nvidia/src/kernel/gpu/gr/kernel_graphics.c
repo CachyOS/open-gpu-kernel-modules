@@ -788,9 +788,13 @@ cleanup:
         // to be allocated. We delay them until now to save memory when runs
         // are done without using graphics contexts!
         //
+        // For MIG ESX hypervisor, vGPU stack do not need any GR channel on host so
+        // skip global ctx buffer alloc to save FB memory
+        //
         if (!pKernelGraphics->globalCtxBuffersInfo.pGlobalCtxBuffers[gfid].bAllocated &&
             (!gpuIsClientRmAllocatedCtxBufferEnabled(pGpu) ||
-             (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid))))
+             (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid) && 
+              !(IS_MIG_IN_USE(pGpu) && hypervisorIsType(OS_HYPERVISOR_VMWARE)))))
         {
             NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
                 kgraphicsAllocGrGlobalCtxBuffers_HAL(pGpu, pKernelGraphics, gfid, NULL));
@@ -864,6 +868,17 @@ kgraphicsLoadStaticInfo_VF
 
         portMemCopy(pPrivate->staticInfo.pSmIssueRateModifier, sizeof(*pPrivate->staticInfo.pSmIssueRateModifier),
                     &pVSI->smIssueRateModifier.smIssueRateModifier[grIdx], sizeof(pVSI->smIssueRateModifier.smIssueRateModifier[grIdx]));
+
+        pPrivate->staticInfo.pSmIssueThrottleCtrl =
+                portMemAllocNonPaged(sizeof(*pPrivate->staticInfo.pSmIssueThrottleCtrl));
+        if (pPrivate->staticInfo.pSmIssueThrottleCtrl == NULL)
+        {
+            status = NV_ERR_NO_MEMORY;
+            goto cleanup;
+        }
+
+        portMemCopy(pPrivate->staticInfo.pSmIssueThrottleCtrl, sizeof(*pPrivate->staticInfo.pSmIssueThrottleCtrl),
+                    &pVSI->smIssueThrottleCtrl.smIssueThrottleCtrl[grIdx], sizeof(pVSI->smIssueThrottleCtrl.smIssueThrottleCtrl[grIdx]));
 
         pPrivate->staticInfo.pPpcMasks = portMemAllocNonPaged(sizeof(*pPrivate->staticInfo.pPpcMasks));
         if (pPrivate->staticInfo.pPpcMasks == NULL)
@@ -957,6 +972,28 @@ kgraphicsLoadStaticInfo_VF
 
         portMemCopy(pPrivate->staticInfo.pSmIssueRateModifier, sizeof(*pPrivate->staticInfo.pSmIssueRateModifier),
                     &pVSI->smIssueRateModifier.smIssueRateModifier[grIdx], sizeof(pVSI->smIssueRateModifier.smIssueRateModifier[grIdx]));
+
+        pPrivate->staticInfo.pSmIssueRateModifierV2 =
+                portMemAllocNonPaged(sizeof(*pPrivate->staticInfo.pSmIssueRateModifierV2));
+        if (pPrivate->staticInfo.pSmIssueRateModifierV2 == NULL)
+        {
+            status = NV_ERR_NO_MEMORY;
+            goto cleanup;
+        }
+
+        portMemCopy(pPrivate->staticInfo.pSmIssueRateModifierV2, sizeof(*pPrivate->staticInfo.pSmIssueRateModifierV2),
+                    &pVSI->smIssueRateModifierV2.smIssueRateModifierV2[grIdx], sizeof(pVSI->smIssueRateModifierV2.smIssueRateModifierV2[grIdx]));
+
+        pPrivate->staticInfo.pSmIssueThrottleCtrl =
+                portMemAllocNonPaged(sizeof(*pPrivate->staticInfo.pSmIssueThrottleCtrl));
+        if (pPrivate->staticInfo.pSmIssueThrottleCtrl == NULL)
+        {
+            status = NV_ERR_NO_MEMORY;
+            goto cleanup;
+        }
+
+        portMemCopy(pPrivate->staticInfo.pSmIssueThrottleCtrl, sizeof(*pPrivate->staticInfo.pSmIssueThrottleCtrl),
+                    &pVSI->smIssueThrottleCtrl.smIssueThrottleCtrl[grIdx], sizeof(pVSI->smIssueThrottleCtrl.smIssueThrottleCtrl[grIdx]));
 
         pPrivate->staticInfo.pPpcMasks = portMemAllocNonPaged(sizeof(*pPrivate->staticInfo.pPpcMasks));
         if (pPrivate->staticInfo.pPpcMasks == NULL)
@@ -1071,6 +1108,12 @@ cleanup :
 
         portMemFree(pPrivate->staticInfo.pSmIssueRateModifier);
         pPrivate->staticInfo.pSmIssueRateModifier = NULL;
+
+        portMemFree(pPrivate->staticInfo.pSmIssueRateModifierV2);
+        pPrivate->staticInfo.pSmIssueRateModifierV2 = NULL;
+
+        portMemFree(pPrivate->staticInfo.pSmIssueThrottleCtrl);
+        pPrivate->staticInfo.pSmIssueThrottleCtrl = NULL;
 
         portMemFree(pPrivate->staticInfo.pFecsTraceDefines);
         pPrivate->staticInfo.pFecsTraceDefines = NULL;
@@ -3355,7 +3398,6 @@ subdeviceCtrlCmdKGrGetSmIssueThrottleCtrl_IMPL
 
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
             kmigmgrGetInstanceRefFromDevice(pGpu, pKernelMIGManager, pDevice, &ref));
-        NV_ASSERT_OR_RETURN(ref.pMIGComputeInstance != NULL && ref.pKernelMIGGpuInstance != NULL, NV_ERR_INVALID_STATE);
 
         NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
             kmigmgrGetLocalToGlobalEngineType(pGpu, pKernelMIGManager, ref, RM_ENGINE_TYPE_GR(0), &globalGrEngine));

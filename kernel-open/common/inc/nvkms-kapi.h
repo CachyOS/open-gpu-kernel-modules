@@ -598,11 +598,15 @@ typedef enum NvKmsKapiRegisterWaiterResultRec {
     NVKMS_KAPI_REG_WAITER_ALREADY_SIGNALLED,
 } NvKmsKapiRegisterWaiterResult;
 
-typedef void NvKmsKapiSuspendResumeCallbackFunc(NvBool suspend);
-
 struct NvKmsKapiGpuInfo {
     nv_gpu_info_t gpuInfo;
     MIGDeviceId   migDevice;
+};
+
+struct NvKmsKapiCallbacks {
+    void (*suspendResume)(NvBool suspend);
+    void (*remove)(NvU32 gpuId);
+    void (*probe)(const struct NvKmsKapiGpuInfo *gpu_info);
 };
 
 struct NvKmsKapiFunctionsTable {
@@ -1473,12 +1477,12 @@ struct NvKmsKapiFunctionsTable {
     );
 
     /*!
-     * Set the callback function for suspending and resuming the display system.
+     * Set the pointer to the callback function table.
      */
     void
-    (*setSuspendResumeCallback)
+    (*setCallbacks)
     (
-        NvKmsKapiSuspendResumeCallbackFunc *function
+        const struct NvKmsKapiCallbacks *callbacks
     );
 
     /*!

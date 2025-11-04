@@ -68,8 +68,8 @@ typedef void (*msgqFcnBarrier)(void);
 // Function to access backend memory (if it's not memory mapped).
 // Keep in mind than when using it, pointers given by peek can't be trusted
 // Should return 0 on success.
-typedef int (*msgqFcnBackendRw)(void *pDest, const void *pSrc, unsigned size,
-                                unsigned flags, void *pArg);
+typedef unsigned (*msgqFcnBackendRw)(void *pDest, const void *pSrc, unsigned size,
+                                     unsigned flags, void *pArg);
 
 /**
  * @brief Return size of metadata (that must be allocated)

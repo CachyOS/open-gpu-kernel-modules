@@ -820,6 +820,20 @@ static void nvkms_resume(NvU32 gpuId)
     nvKmsKapiSuspendResume(NV_FALSE /* suspend */);
 }
 
+static void nvkms_remove(NvU32 gpuId)
+{
+    nvKmsKapiRemove(gpuId);
+
+    // Eventually, this function should also terminate all NVKMS clients and
+    // free the NVDevEvoRec. Until that is implemented, all NVKMS clients must
+    // be closed before a device is removed.
+}
+
+static void nvkms_probe(const nv_gpu_info_t *gpu_info)
+{
+    nvKmsKapiProbe(gpu_info);
+}
+
 
 /*************************************************************************
  * Interface with resman.
@@ -828,7 +842,9 @@ static void nvkms_resume(NvU32 gpuId)
 static nvidia_modeset_rm_ops_t __rm_ops = { 0 };
 static nvidia_modeset_callbacks_t nvkms_rm_callbacks = {
     .suspend = nvkms_suspend,
-    .resume  = nvkms_resume
+    .resume  = nvkms_resume,
+    .remove  = nvkms_remove,
+    .probe   = nvkms_probe,
 };
 
 static int nvkms_alloc_rm(void)

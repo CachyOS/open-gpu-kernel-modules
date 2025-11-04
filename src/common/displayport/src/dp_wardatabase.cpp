@@ -125,7 +125,7 @@ void ConnectorImpl2x::applyOuiWARs()
                 bStuffDummySymbolsFor8b10b = true;
             }
             break;
-        
+
     }
 }
 
@@ -513,16 +513,25 @@ void Edid::applyEdidWorkArounds(NvU32 warFlag, const DpMonitorDenylistData *pDen
 
         // LG
         case 0xE430:
-            if (ProductID == 0x0469)
+            switch (ProductID)
             {
-                //
-                // The LG display can't be driven at FHD with 2*RBR.
-                // Force max link config
-                //
-                this->WARFlags.forceMaxLinkConfig = true;
-                DP_PRINTF(DP_NOTICE, "DP-WAR> Force maximum link config WAR required on LG panel.");
-                DP_PRINTF(DP_NOTICE, "DP-WAR>   bug 1649626");
-                break;
+                case 0x0469:
+                {
+                    //
+                    // The LG display can't be driven at FHD with 2*RBR.
+                    // Force max link config
+                    //
+                    this->WARFlags.forceMaxLinkConfig = true;
+                    DP_PRINTF(DP_NOTICE, "DP-WAR> Force maximum link config WAR required on LG panel.");
+                    DP_PRINTF(DP_NOTICE, "DP-WAR>   bug 1649626");
+                    break;
+                }
+                case 0x06DB:
+                {
+                    this->WARFlags.useLegacyAddress = true;
+                    DP_PRINTF(DP_NOTICE, "DP-WAR> LG eDP implements only Legacy interrupt address range");
+                    break;
+                }
             }
             break;
         case 0x8F34:
@@ -675,11 +684,18 @@ void Edid::applyEdidWorkArounds(NvU32 warFlag, const DpMonitorDenylistData *pDen
             }
             break;
         case 0xAC10:
-            if (ProductID == 0x42AD || ProductID == 0x42AC)
+            switch (ProductID)
             {
-                this->WARFlags.bApplyStuffDummySymbolsWAR   = true;
-                this->WARData.bStuffDummySymbolsFor128b132b = true;
-                this->WARData.bStuffDummySymbolsFor8b10b    = false;
+                case 0x42AD:
+                case 0x42AC:
+                    this->WARFlags.bApplyStuffDummySymbolsWAR   = true;
+                    this->WARData.bStuffDummySymbolsFor128b132b = true;
+                    this->WARData.bStuffDummySymbolsFor8b10b    = false;
+                    break;
+                case 0xA21F:
+                    this->WARFlags.bForceHeadShutdown = true;
+                    DP_PRINTF(DP_NOTICE, "DP-WAR> Force head shutdown for Dell AW2524H.");
+                    break;
             }
             break;
         default:

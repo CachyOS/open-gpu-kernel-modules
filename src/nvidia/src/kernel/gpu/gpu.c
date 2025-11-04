@@ -2287,7 +2287,7 @@ gpuStateInit_IMPL
     }
 
     // Set a property indicating that VF BAR0 MMU TLB Invalidation register emulation is required or not.
-    if (hypervisorIsVgxHyper())
+    if (hypervisorIsVgxHyper() || (RMCFG_FEATURE_PLATFORM_GSP && IS_VGPU_GSP_PLUGIN_OFFLOAD_ENABLED(pGpu)))
     {
         if (
             IsdADA(pGpu) ||

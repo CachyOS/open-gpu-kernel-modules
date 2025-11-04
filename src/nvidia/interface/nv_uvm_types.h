@@ -688,6 +688,13 @@ typedef struct UvmGpuInfo_tag
 
     // GPU setup in CDMM mode
     NvBool cdmmEnabled;
+
+    // If nvlinkDirectConnect is NV_TRUE,
+    // nvlDirectConnectMemoryWindowStart is the GPA base address for the GPU's vidmem over
+    // direct-connect NVLink. It is used when creating PTEs of GPU memory mappings
+    // to direct NVLink peers.
+    NvBool nvlDirectConnect;
+    NvU64 nvlDirectConnectMemoryWindowStart;
 } UvmGpuInfo;
 
 typedef struct UvmGpuFbInfo_tag

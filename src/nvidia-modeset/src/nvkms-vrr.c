@@ -254,6 +254,17 @@ nvGetAllowedDpyVrrType(const NVDpyEvoRec *pDpyEvo,
                        const NvBool allowGsync,
                        const enum NvKmsAllowAdaptiveSync allowAdaptiveSync)
 {
+
+    if (nvDpyIsHdmiEvo(pDpyEvo)) {
+        /*
+         * Do not allow HDMI VRR if refresh rate less than
+         * 50Hz or Vactive < 720.
+         */
+        if ((pTimings->vVisible < 720) || (pTimings->RRx1k < 50000)) {
+            return NVKMS_DPY_VRR_TYPE_NONE;
+        }
+    }
+
     /*
      * Mark these mode timings as indicating a VRR mode, even if the timings
      * don't need to be adjusted; this is used to distinguish between VRR and

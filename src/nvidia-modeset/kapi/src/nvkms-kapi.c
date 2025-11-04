@@ -3939,28 +3939,53 @@ static NvBool GetCRC32
     return NV_TRUE;
 }
 
-static NvKmsKapiSuspendResumeCallbackFunc *pSuspendResumeFunc;
+static const struct NvKmsKapiCallbacks *pCallbacks;
 
 void nvKmsKapiSuspendResume
 (
     NvBool suspend
 )
 {
-    if (pSuspendResumeFunc) {
-        pSuspendResumeFunc(suspend);
+    if (pCallbacks) {
+        pCallbacks->suspendResume(suspend);
     }
 }
 
-static void nvKmsKapiSetSuspendResumeCallback
+static void nvKmsKapiSetCallbacks
 (
-    NvKmsKapiSuspendResumeCallbackFunc *function
+    const struct NvKmsKapiCallbacks *callbacks
 )
 {
-    if (pSuspendResumeFunc && function) {
-        nvKmsKapiLogDebug("Kapi suspend/resume callback function already registered");
+    if (pCallbacks && callbacks) {
+        nvKmsKapiLogDebug("Kapi callback functions already registered");
     }
 
-    pSuspendResumeFunc = function;
+    pCallbacks = callbacks;
+}
+
+void nvKmsKapiRemove
+(
+    NvU32 gpuId
+)
+{
+    if (pCallbacks) {
+        pCallbacks->remove(gpuId);
+    }
+}
+
+void nvKmsKapiProbe
+(
+    const nv_gpu_info_t *gpu_info
+)
+{
+    if (pCallbacks) {
+        const struct NvKmsKapiGpuInfo kapi_gpu_info = {
+            .gpuInfo = *gpu_info,
+            .migDevice = NO_MIG_DEVICE,
+        };
+
+        pCallbacks->probe(&kapi_gpu_info);
+    }
 }
 
 static NvBool SignalVrrSemaphore
@@ -4105,7 +4130,7 @@ NvBool nvKmsKapiGetFunctionsTableInternal
         nvKmsKapiUnregisterSemaphoreSurfaceCallback;
     funcsTable->setSemaphoreSurfaceValue =
         nvKmsKapiSetSemaphoreSurfaceValue;
-    funcsTable->setSuspendResumeCallback = nvKmsKapiSetSuspendResumeCallback;
+    funcsTable->setCallbacks = nvKmsKapiSetCallbacks;
     funcsTable->framebufferConsoleDisabled = FramebufferConsoleDisabled;
 
     funcsTable->tryInitDisplaySemaphore = nvKmsKapiTryInitDisplaySemaphore;

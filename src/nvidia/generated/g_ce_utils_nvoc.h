@@ -150,7 +150,6 @@ struct CeUtils {
     NvBool bCompletionCallbackEnabled;
     PORT_SPINLOCK *pCallbackLock;
     CeUtilsCallbackList completionCallbacks;
-    NVOS10_EVENT_KERNEL_CALLBACK_EX semaphoreCallback;
     struct KernelChannel *pLiteKernelChannel;
 };
 

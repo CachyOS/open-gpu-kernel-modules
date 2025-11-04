@@ -78,6 +78,19 @@ typedef struct CeUtils CeUtils;
 
 
 
+struct SysmemScrubber;
+
+#ifndef __NVOC_CLASS_SysmemScrubber_TYPEDEF__
+#define __NVOC_CLASS_SysmemScrubber_TYPEDEF__
+typedef struct SysmemScrubber SysmemScrubber;
+#endif /* __NVOC_CLASS_SysmemScrubber_TYPEDEF__ */
+
+#ifndef __nvoc_class_id_SysmemScrubber
+#define __nvoc_class_id_SysmemScrubber 0x266962
+#endif /* __nvoc_class_id_SysmemScrubber */
+
+
+
 typedef volatile struct _cl906f_tag1 Nv906fControl;
 typedef struct KERNEL_MIG_GPU_INSTANCE KERNEL_MIG_GPU_INSTANCE;
 
@@ -681,6 +694,7 @@ struct MemoryManager {
     NvU64 rsvdMemorySize;
     struct CeUtils *pCeUtils;
     NvBool bDisableGlobalCeUtils;
+    struct SysmemScrubber *pSysmemScrubber;
     OBJSCRUB eccScrubberState;
     struct __nvoc_inner_struc_MemoryManager_2__ Ram;
     PMEMORY_DESCRIPTOR pReservedConsoleMemDesc;

@@ -204,8 +204,12 @@ typedef struct
     uvm_deferred_free_object_t deferred_free;
 
     // Flag indicating whether L2 cache invalidation is needed at unmap time.
-    // This is set by RM during mapping and used during unmap to determine
-    // if L2 cache invalidation should be performed for non coherent sysmem.
+    // This is set by RM during mapping and used during unmap to determine if L2
+    // cache invalidation should be performed. For GPU cached system memory
+    // allocations on systems a write-back cache this is required for
+    // correctness. For GPU cached peer and system memory on systems with a
+    // write-through cache the invalidation could be done by RM at map time
+    // however this introduces overhead during performance sensitive sections.
     bool need_l2_invalidate_at_unmap;
 } uvm_ext_gpu_map_t;
 

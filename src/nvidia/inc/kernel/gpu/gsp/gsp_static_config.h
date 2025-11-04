@@ -223,6 +223,7 @@ typedef struct GspSystemInfo
     NvBool bIsCmcBasedHws;
     NvBool bGspNocatEnabled;
     NvBool bS0ixSupport;
+    NvBool bWindowChannelAlwaysMapped;
 } GspSystemInfo;
 
 

@@ -255,6 +255,7 @@ typedef struct
     NvU64                                   assignedSwizzIdMask;
     NvU32                                   assignedSwizzIdVgpuCount[KMIGMGR_MAX_GPU_SWIZZID];
     NvU32                                   fractionalMultiVgpu;
+    NvBool                                  isPlacementIdInfoSet;
     // Indicates MIG timeslicing mode enabled/disabled
     NvBool                                  migTimeslicingModeEnabled;
 } KERNEL_PHYS_GPU_INFO;

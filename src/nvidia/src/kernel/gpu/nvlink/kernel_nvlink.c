@@ -276,6 +276,32 @@ _knvlinkCheckFabricCliqueId
     return NV_TRUE;
 }
 
+static NvBool
+_knvlinkCheckFabricProbeHealth
+(
+    OBJGPU       *pGpu,
+    OBJGPU       *pPeerGpu
+)
+{
+    NvU32 healthStatusMask = 0;
+    NvU32 peerHealthStatusMask = 0;
+    NV_STATUS status;
+    
+    status = gpuFabricProbeGetFabricHealthStatus(pGpu->pGpuFabricProbeInfoKernel, &healthStatusMask);
+    NV_ASSERT_OK_OR_RETURN(status);
+ 
+    status = gpuFabricProbeGetFabricHealthStatus(pPeerGpu->pGpuFabricProbeInfoKernel, &peerHealthStatusMask);
+    NV_ASSERT_OK_OR_RETURN(status);
+ 
+    if (nvlinkGetFabricHealthSummary(healthStatusMask) == NVLINK_INBAND_FABRIC_HEALTH_SUMMARY_UNHEALTHY ||
+        nvlinkGetFabricHealthSummary(peerHealthStatusMask) == NVLINK_INBAND_FABRIC_HEALTH_SUMMARY_UNHEALTHY)
+    {
+        return NV_FALSE;
+    }
+    
+    return NV_TRUE;
+}
+
 /*!
  * @brief Checks whether EGM addresses are valid for P2P
  * when GPU is connected to NVSwitch
@@ -372,7 +398,8 @@ knvlinkCheckNvswitchP2pConfig_IMPL
 
         if (gpuFabricProbeIsSupported(pGpu) && gpuFabricProbeIsSupported(pPeerGpu))
         {
-            if (!_knvlinkCheckFabricCliqueId(pGpu, pPeerGpu))
+            if (!_knvlinkCheckFabricCliqueId(pGpu, pPeerGpu) ||
+                !_knvlinkCheckFabricProbeHealth(pGpu, pPeerGpu))
             {
                 return NV_FALSE;
             }

@@ -1377,6 +1377,7 @@ typedef struct NV0073_CTRL_SPECIFIC_SET_HDMI_FRL_LINK_CONFIG_PARAMS {
     NvU32  displayId;
     NvU32  data;
     NvBool bFakeLt;
+    NvBool bDoNotSkipLt;
     NvBool bLtSkipped;
     NvBool bLinkAssessmentOnly;
 } NV0073_CTRL_SPECIFIC_SET_HDMI_FRL_LINK_CONFIG_PARAMS;

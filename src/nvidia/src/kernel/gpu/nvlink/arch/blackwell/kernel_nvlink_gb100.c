@@ -368,6 +368,45 @@ knvlinkGetSupportedBwMode_GB100
     return NV_OK;
 }
 
+NV_STATUS
+knvlinkSetDirectConnectBaseAddress_GB100
+(
+    OBJGPU       *pGpu,
+    KernelNvlink *pKernelNvlink
+)
+{
+    if (gpuIsSelfHosted(pGpu))
+    {
+        //
+        // There are 64 entries in the GPA remap table of size 4TB each.
+        // For direct-connect nvlink5 systems, we use zero-based EGM GPA addresses,
+        // So remap slot 0 is used by EGM, and remap slot 1 is use for vidmem
+        // that requires 4TB as base address.
+        //
+        pKernelNvlink->vidmemDirectConnectBaseAddr = NVBIT64(42);
+    }
+
+    return NV_OK;
+}
+
+NV_STATUS
+knvlinkValidateFabricBaseAddress_GB100
+(
+    OBJGPU       *pGpu,
+    KernelNvlink *pKernelNvlink,
+    NvU64         fabricBaseAddr
+)
+{
+    // Check if fabric address is aligned to mapslot size.
+    if (fabricBaseAddr & (NVBIT64(42) - 1))
+    {
+        return NV_ERR_INVALID_ARGUMENT;
+    }
+
+    return NV_OK;
+
+}
+
 /*!
  * @brief   Validates fabric EGM base address.
  *

@@ -347,10 +347,23 @@ uvm_hal_blackwell_access_counter_query_clear_op_gb20x(uvm_parent_gpu_t *parent_g
     return UVM_ACCESS_COUNTER_CLEAR_OP_TARGETED;
 }
 
-// Host-specific L2 cache invalidate for non-coherent sysmem
-void uvm_hal_blackwell_host_l2_invalidate_noncoh_sysmem(uvm_push_t *push)
+void uvm_hal_blackwell_host_l2_invalidate(uvm_push_t *push, uvm_aperture_t aperture)
 {
     uvm_gpu_t *gpu = uvm_push_get_gpu(push);
+    NvU32 aperture_value;
+
+    if (!gpu->parent->is_integrated_gpu) {
+        return uvm_hal_ampere_host_l2_invalidate(push, aperture);
+    }
+
+    switch (aperture) {
+        case UVM_APERTURE_SYS:
+            aperture_value = HWCONST(C96F, MEM_OP_D, OPERATION, L2_SYSMEM_NCOH_INVALIDATE);
+            break;
+        default:
+            UVM_ASSERT_MSG(false, "Invalid aperture_type %d\n", aperture);
+            return;
+    }
 
     // First sysmembar
     uvm_hal_membar(gpu, push, UVM_MEMBAR_SYS);
@@ -363,7 +376,7 @@ void uvm_hal_blackwell_host_l2_invalidate_noncoh_sysmem(uvm_push_t *push)
     NV_PUSH_4U(C96F, MEM_OP_A, 0,
                MEM_OP_B, 0,
                MEM_OP_C, 0,
-               MEM_OP_D, HWCONST(C96F, MEM_OP_D, OPERATION, L2_SYSMEM_NCOH_INVALIDATE));
+               MEM_OP_D, aperture_value);
     // Final sysmembar
     uvm_hal_membar(gpu, push, UVM_MEMBAR_SYS);
 }

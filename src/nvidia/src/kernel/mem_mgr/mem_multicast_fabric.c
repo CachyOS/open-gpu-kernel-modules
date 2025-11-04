@@ -155,9 +155,18 @@ typedef struct mem_multicast_fabric_descriptor
 
     //
     // Boolean to be set when an Inband request has been sent to FM
-    // and is currently in progress
+    // and is currently in progress.
+    //
+    // This flag is only set on the prime object.
     //
     NvBool bInbandReqInProgress;
+
+    //
+    // Boolean set when an inband request response is received.
+    //
+    // This flag is set on both prime and non-prime objects.
+    //
+    NvBool bResponseReceived;
 
     //
     // Request Id associated with the Inband request in progress when
@@ -1110,27 +1119,43 @@ _memMulticastFabricDescriptorFree
                                     MEM_MULTICAST_FABRIC_TEAM_RELEASE_REQUEST);
     }
 
+    //
+    // In the process cleanup path or a deferred cleanup path, skip waiting on
+    // the clients which are being torn down. The process could be already in
+    // uninterruptible state at that point, and if for some reason GFM doesn't
+    // respond, we will be stuck indefinitely in the wait queue. Instead march
+    // on, and handle the cleanup later (see memorymulticastfabricTeamSetupResponseCallback)
+    // whenever GFM responds.
+    //
+    // This wait is really required for interruptible cases like NvRmFree(),
+    // to mimic a synchronous op.
+    //
     if (pMulticastFabricDesc->bInbandReqInProgress)
     {
-        OS_WAIT_QUEUE *pWq;
         THREAD_STATE_NODE *pThreadNode = NULL;
         THREAD_STATE_FREE_CALLBACK freeCallback;
 
-        NV_ASSERT_OK(osAllocWaitQueue(&pWq));
+        NV_ASSERT_OK(threadStateGetCurrent(&pThreadNode, NULL));
 
-        if (pWq != NULL)
+        if (!((pThreadNode->flags & THREAD_STATE_FLAGS_IS_EXITING) ||
+              (pThreadNode->flags & THREAD_STATE_FLAGS_IS_KERNEL_THREAD)))
         {
-            NV_ASSERT_OK(fabricMulticastCleanupCacheInsert(pFabric,
-                                        pMulticastFabricDesc->inbandReqId,
-                                        pWq));
+            OS_WAIT_QUEUE *pWq = NULL;
+            NV_ASSERT_OK(osAllocWaitQueue(&pWq));
 
-            NV_ASSERT_OK(threadStateGetCurrent(&pThreadNode, NULL));
+            if (pWq != NULL)
+            {
+                NV_ASSERT_OK(fabricMulticastCleanupCacheInsert(pFabric,
+                                            pMulticastFabricDesc->inbandReqId,
+                                            pWq));
 
-            freeCallback.pCb = fabricMulticastWaitOnTeamCleanupCallback;
-            freeCallback.pCbData = (void *)pMulticastFabricDesc->inbandReqId;
 
-            NV_ASSERT_OK(threadStateEnqueueCallbackOnFree(pThreadNode,
-                                                          &freeCallback));
+                freeCallback.pCb = fabricMulticastWaitOnTeamCleanupCallback;
+                freeCallback.pCbData = (void *)pMulticastFabricDesc->inbandReqId;
+
+                NV_ASSERT_OK(threadStateEnqueueCallbackOnFree(pThreadNode,
+                                                              &freeCallback));
+            }
         }
     }
 
@@ -1668,34 +1693,8 @@ memorymulticastfabricTeamSetupResponseCallback
 
     pMulticastFabricDesc = fabricMulticastSetupCacheGet(pFabric, requestId);
 
-    if ((pMulticastFabricDesc != NULL) && (mcTeamStatus == NV_ERR_BUSY_RETRY))
+    if (pMulticastFabricDesc != NULL)
     {
-        NvBool bRetrySuccess;
-
-        portSyncRwLockAcquireWrite(pMulticastFabricDesc->pLock);
-
-        pMulticastFabricDesc->bInbandReqInProgress = NV_FALSE;
-
-        _memMulticastFabricAttachGpuPostProcessor(pGpu,
-                                                  pMulticastFabricDesc,
-                                                  mcTeamStatus,
-                                                  mcTeamHandle,
-                                                  mcAddressBase,
-                                                  mcAddressSize);
-
-        bRetrySuccess = pMulticastFabricDesc->bInbandReqInProgress;
-
-        portSyncRwLockReleaseWrite(pMulticastFabricDesc->pLock);
-
-        if (!bRetrySuccess)
-            fabricMulticastSetupCacheDelete(pFabric, requestId);
-
-        portSyncRwLockReleaseWrite(pFabric->pMulticastFabricModuleLock);
-    }
-    else if (pMulticastFabricDesc != NULL)
-    {
-        fabricMulticastSetupCacheDelete(pFabric, requestId);
-
         //
         // We have now safely acquired pMulticastFabricDesc->lock, which
         // should block the destructor from removing pMulticastFabricDesc
@@ -1709,14 +1708,20 @@ memorymulticastfabricTeamSetupResponseCallback
         //
         portSyncRwLockReleaseWrite(pFabric->pMulticastFabricModuleLock);
 
-        pMulticastFabricDesc->bInbandReqInProgress = NV_FALSE;
+        if (!pMulticastFabricDesc->bResponseReceived)
+        {
+            pMulticastFabricDesc->bInbandReqInProgress = NV_FALSE;
 
-        _memMulticastFabricAttachGpuPostProcessor(pGpu,
-                                                  pMulticastFabricDesc,
-                                                  mcTeamStatus,
-                                                  mcTeamHandle,
-                                                  mcAddressBase,
-                                                  mcAddressSize);
+            // This call sets `bInbandReqInProgress` on a successful retry.
+            _memMulticastFabricAttachGpuPostProcessor(pGpu,
+                                                      pMulticastFabricDesc,
+                                                      mcTeamStatus,
+                                                      mcTeamHandle,
+                                                      mcAddressBase,
+                                                      mcAddressSize);
+
+            pMulticastFabricDesc->bResponseReceived = !pMulticastFabricDesc->bInbandReqInProgress;
+        }
 
         portSyncRwLockReleaseWrite(pMulticastFabricDesc->pLock);
     }

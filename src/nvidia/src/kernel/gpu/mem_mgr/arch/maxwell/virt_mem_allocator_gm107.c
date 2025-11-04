@@ -1395,35 +1395,51 @@ dmaAllocMapping_GM107
         {
             pLocals->fabricAddr = NVLINK_INVALID_FABRIC_ADDR;
         }
-        else if ((GPU_GET_KERNEL_NVLINK(pGpu) != NULL) &&
-                 !gpuFabricProbeIsSupported(pGpu) &&
-                 (knvlinkGetIPVersion(pGpu, GPU_GET_KERNEL_NVLINK(pGpu)) >= NVLINK_VERSION_50))
+        else if (GPU_GET_KERNEL_NVLINK(pGpu) != NULL)
         {
-            //
-            // on NVL5 direct connect systems we need to use the peerId << 42 as
-            // the fabric offset
-            //
-            pLocals->fabricAddr = (((NvU64)pLocals->peerNumber) << NVLINK_NODE_REMAP_OFFSET_SHIFT);
-        }
-        else
-        {
-            // Get EGM fabric address for Remote EGM
-            if (memdescIsEgm(pLocals->pTempMemDesc))
+            if (!GPU_IS_NVSWITCH_DETECTED(pGpu) &&
+                gpuIsSelfHosted(pGpu))
             {
-                status = _dmaGetFabricEgmAddress(pLocals->pSrcGpu, pLocals->aperture,
-                                                pLocals->kind, &pLocals->fabricAddr);
+                // NVLink direct-connect
+
+                if (memdescIsEgm(pLocals->pTempMemDesc))
+                {
+                    pLocals->fabricAddr = NVLINK_INVALID_FABRIC_ADDR;
+                }
+                else
+                {
+                    // Get vidmem base address, if applicable
+                    pLocals->fabricAddr = knvlinkGetDirectConnectBaseAddress_HAL(pGpu,
+                                                            GPU_GET_KERNEL_NVLINK(pGpu));
+                }
             }
             else
             {
-                status = _dmaGetFabricAddress(pLocals->pSrcGpu, pLocals->aperture,
-                                                pLocals->kind, &pLocals->fabricAddr);
-            }
+                // NvSwitch-connected
 
-            if (status != NV_OK)
-            {
-                DBG_BREAKPOINT();
-                SLI_LOOP_BREAK;
+                if (memdescIsEgm(pLocals->pTempMemDesc))
+                {
+                    // Get EGM fabric address for Remote EGM
+                    status = _dmaGetFabricEgmAddress(pLocals->pSrcGpu, pLocals->aperture,
+                                                     pLocals->kind, &pLocals->fabricAddr);
+                }
+                else
+                {
+                    // Get vidmem fabric address
+                    status = _dmaGetFabricAddress(pLocals->pSrcGpu, pLocals->aperture,
+                                                  pLocals->kind, &pLocals->fabricAddr);
+                }
+
+                if (status != NV_OK)
+                {
+                    DBG_BREAKPOINT();
+                    SLI_LOOP_BREAK;
+                }
             }
+        }
+        else
+        {
+            pLocals->fabricAddr = NVLINK_INVALID_FABRIC_ADDR;
         }
 
         pLocals->bVolatile = dmaIsDefaultGpuUncached_HAL(pDma, pLocals->pTempMemDesc,

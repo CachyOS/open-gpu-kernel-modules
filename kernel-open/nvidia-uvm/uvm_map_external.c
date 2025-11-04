@@ -1276,11 +1276,20 @@ void uvm_ext_gpu_map_destroy(uvm_va_range_external_t *external_range,
 
     range_tree = uvm_ext_gpu_range_tree(external_range, mapped_gpu);
 
-    // Perform L2 cache invalidation for noncoherent sysmem mappings. 
-    // This is done only on systems with write-back cache which is iGPUs as of now.
+    // Perform L2 cache invalidation for cached peer and sysmem mappings.
     if (ext_gpu_map->need_l2_invalidate_at_unmap) {
-        UVM_ASSERT(ext_gpu_map->gpu->parent->is_integrated_gpu);
-        status = uvm_mmu_l2_invalidate_noncoh_sysmem(mapped_gpu);
+        uvm_aperture_t aperture;
+
+        // Peer cache invalidation is not targeted to a specific peer, so we
+        // just use UVM_APERTURE_PEER(0).
+        if (ext_gpu_map->is_egm)
+            aperture = UVM_APERTURE_PEER(0);
+        else if (ext_gpu_map->is_sysmem)
+            aperture = UVM_APERTURE_SYS;
+        else
+            aperture = UVM_APERTURE_PEER(0);
+
+        status = uvm_mmu_l2_invalidate(mapped_gpu, aperture);
         UVM_ASSERT(status == NV_OK);
     }
 

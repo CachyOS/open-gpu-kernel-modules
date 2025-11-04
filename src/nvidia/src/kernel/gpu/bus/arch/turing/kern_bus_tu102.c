@@ -772,11 +772,21 @@ _kbusUpdateStaticBar1VAMapping_TU102
     {
         comprInfo.kind = pKernelBus->staticBar1DefaultKind;
     }
+    else
+    {
+        // Localize if committing mapping. On release, bLocalized is always NV_FALSE
+        if (memdescGetFlag(pMemDesc, MEMDESC_FLAGS_ALLOC_AS_LOCALIZED))
+        {
+            pageArray.bLocalized = NV_TRUE;
+            pageArray.localizedMask = pMemDesc->localizedMask;
+        }
+    }
 
     for (offset = 0; offset < mapSize; offset += mapGranularity)
     {
         // Under static BAR1 mapping, BAR1 VA equal to fb physAddr plus startOffset
-        physAddr = memdescGetPtePhysAddr(pMemDesc, addressTranslation, offset);
+        // dmaUpdateVASpace_HAL sets localized bit based on the pageArray->bLocalized
+        physAddr = memdescGetPhysAddr(pMemDesc, addressTranslation, offset);
         vaLo     = physAddr + pKernelBus->bar1[gfid].staticBar1.startOffset;
         vaHi     = vaLo + mapGranularity - 1;
 
@@ -972,8 +982,14 @@ NV_STATUS kbusDecreaseStaticBar1Refcount_TU102
 
     NV_ASSERT_OR_RETURN(pRootMemDesc->staticBar1MappingRefCount != 0, NV_ERR_INVALID_STATE);
 
+    //
+    // If refcount reaches 0, we only need to update if we're not the default kind or
+    // if this is localized. If we restore nonlocalized, that means there refcount == 0,
+    // so we won't access memory in a non-localized way.
+    //
     if (--pRootMemDesc->staticBar1MappingRefCount != 0 ||
-        pRootMemDesc->staticBar1MappingKind == pKernelBus->staticBar1DefaultKind)
+        ((pRootMemDesc->staticBar1MappingKind == pKernelBus->staticBar1DefaultKind) &&
+         !memdescGetFlag(pMemDesc, MEMDESC_FLAGS_ALLOC_AS_LOCALIZED)))
     {
         return NV_OK;
     }

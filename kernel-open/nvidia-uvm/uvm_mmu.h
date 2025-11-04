@@ -722,9 +722,8 @@ uvm_gpu_address_t uvm_mmu_gpu_address(uvm_gpu_t *gpu, uvm_gpu_phys_address_t phy
 // dma addresses, IOVAs, and GPAs). See uvm_dma_map_invalidation_t.
 NV_STATUS uvm_mmu_tlb_invalidate_phys(uvm_gpu_t *gpu);
 
-// Invalidate L2 cache when noncoherent sysmem mappings are unmapped.
-// This is done for systems with write-back cache i.e. iGPUs as of now.
-NV_STATUS uvm_mmu_l2_invalidate_noncoh_sysmem(uvm_gpu_t *gpu);
+// Invalidate L2 cache for peer or system memory.
+NV_STATUS uvm_mmu_l2_invalidate(uvm_gpu_t *gpu, uvm_aperture_t aperture);
 
 NV_STATUS uvm_test_invalidate_tlb(UVM_TEST_INVALIDATE_TLB_PARAMS *params, struct file *filp);
 

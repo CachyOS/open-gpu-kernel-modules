@@ -1,5 +1,5 @@
 /*******************************************************************************
-    Copyright (c) 2018-2023 NVIDIA Corporation
+    Copyright (c) 2018-2025 NVIDIA Corporation
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to
@@ -43,8 +43,11 @@
 // commit cb4789b0d19ff231ce9f73376a023341300aed96 (11/23/2020). Commit
 // 701fac40384f07197b106136012804c3cae0b3de (02/15/2022) removed ioasid_get()
 // and added mm_pasid_drop().
+//
+// CONFIG_IOMMU_SVA_LIB was renamed to CONFIG_IOMMU_SVA with commit 7ba5647
+// (02/07/2022).
     #if UVM_CAN_USE_MMU_NOTIFIERS() && (defined(NV_IOASID_GET_PRESENT) || defined(NV_MM_PASID_DROP_PRESENT))
-        #if defined(CONFIG_IOMMU_SVA)
+        #if defined(CONFIG_IOMMU_SVA) || defined(CONFIG_IOMMU_SVA_LIB)
             #define UVM_ATS_SVA_SUPPORTED() 1
         #else
             #define UVM_ATS_SVA_SUPPORTED() 0

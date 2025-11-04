@@ -10635,6 +10635,7 @@ NV_STATUS rpcGspSetSystemInfo_v17_00
         if (pKernelDisplay != NULL)
         {
             rpcInfo->bFeatureStretchVblankCapable = pKernelDisplay->getProperty(pKernelDisplay, PDB_PROP_KDISP_FEATURE_STRETCH_VBLANK_CAPABLE);
+            rpcInfo->bWindowChannelAlwaysMapped = pKernelDisplay->getProperty(pKernelDisplay, PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED);
         }
 
        KernelFsp *pKernelFsp = GPU_GET_KERNEL_FSP(pGpu);

@@ -938,10 +938,11 @@ typedef struct {
 } NVEvoLutDataRec;
 
 typedef struct {
-    NvBool supportsDP13                    :1;
-    NvBool supportsHDMI20                  :1;
-    NvBool supportsYUV2020                 :1;
-    NvBool inputLutAppliesToBase           :1;
+    NvBool supportsDP13                     :1;
+    NvBool supportsHDMI20                   :1;
+    NvBool supportsYUV2020                  :1;
+    NvBool inputLutAppliesToBase            :1;
+    NvBool rasterLockAcrossProtocolsAllowed :1;
     NvU8   validNIsoFormatMask;
     NvU32  maxPitchValue;
     int    maxWidthInBytes;
@@ -2251,6 +2252,12 @@ typedef struct _NVDpyEvoRec {
     NvBool      hdmiCapable              : 1;
     NvBool      isVrHmd                  : 1;
 
+    /* 
+     * whether the dpy was hotplugged since the last
+     * call to NVKMS_IOCTL_QUERY_DPY_DYNAMIC_DATA
+     */
+    NvBool      hotplugged               : 1;
+
     /*
      * Maximum single link and total allowed pixel clock.  This is first
      * reported by RM through DpyProbeMaxPixelClock, and then potentially
@@ -2302,8 +2309,7 @@ typedef struct _NVDpyEvoRec {
     struct {
         HDMI_SRC_CAPS srcCaps;
         HDMI_SINK_CAPS sinkCaps;
-
-        NvBool reassessFrlLinkCaps : 1;
+        NvBool reassessFrlLinkCaps             : 1;
     } hdmi;
 
     struct {

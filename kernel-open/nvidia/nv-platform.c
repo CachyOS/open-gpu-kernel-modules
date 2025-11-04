@@ -1335,6 +1335,18 @@ static int nv_platform_device_remove_wrapper(struct platform_device *pdev)
 }
 #endif
 
+static void nv_platform_device_shutdown(struct platform_device *pdev)
+{
+    nv_linux_state_t *nvl = platform_get_drvdata(pdev);
+
+    if (nvl != NULL && !nvl->is_forced_shutdown)
+    {
+        nv_state_t *nv = NV_STATE_PTR(nvl);
+
+        nvidia_modeset_remove(nv->gpu_id);
+    }
+}
+
 const struct of_device_id nv_platform_device_table[] =
 {
     { .compatible = "nvidia,tegra234-display",},
@@ -1358,6 +1370,7 @@ struct platform_driver nv_platform_driver = {
     },
     .probe     = nv_platform_device_probe,
     .remove    = nv_platform_device_remove_wrapper,
+    .shutdown  = nv_platform_device_shutdown,
 };
 
 int nv_platform_count_devices(void)

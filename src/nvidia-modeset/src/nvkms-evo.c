@@ -865,13 +865,53 @@ static NvBool HeadStateIsHdmiTmdsDeepColor(const NVDispHeadStateEvoRec *pHeadSta
     return FALSE;
 }
 
+static NvBool ProtocolsAreRasterLockPossible(
+    const NVDevEvoRec *pDevEvo,
+    enum nvKmsTimingsProtocol protocol1,
+    enum nvKmsTimingsProtocol protocol2)
+{
+    if (pDevEvo->caps.rasterLockAcrossProtocolsAllowed) {
+        /* It doesn't matter what the protocols are. */
+        return TRUE;
+    }
+
+    /* Otherwise, only raster lock compatible protocols. */
+
+    switch (protocol1) {
+
+        case NVKMS_PROTOCOL_DAC_RGB:           /* fall through */
+        case NVKMS_PROTOCOL_DSI:               /* fall through */
+        case NVKMS_PROTOCOL_SOR_HDMI_FRL:      /* fall through */
+        case NVKMS_PROTOCOL_PIOR_EXT_TMDS_ENC: /* fall through */
+        case NVKMS_PROTOCOL_SOR_DUAL_TMDS:     /* fall through */
+        case NVKMS_PROTOCOL_SOR_LVDS_CUSTOM:
+            /* require exact match */
+            return protocol1 == protocol2;
+
+        case NVKMS_PROTOCOL_SOR_SINGLE_TMDS_A: /* fall through */
+        case NVKMS_PROTOCOL_SOR_SINGLE_TMDS_B:
+            /* TMDS_A and TMDS_B can be locked to each other */
+            return protocol2 == NVKMS_PROTOCOL_SOR_SINGLE_TMDS_A ||
+                   protocol2 == NVKMS_PROTOCOL_SOR_SINGLE_TMDS_B;
+
+        case NVKMS_PROTOCOL_SOR_DP_A:          /* fall through */
+        case NVKMS_PROTOCOL_SOR_DP_B:
+            /* DP_A and DP_B can be locked to each other */
+            return protocol2 == NVKMS_PROTOCOL_SOR_DP_A ||
+                   protocol2 == NVKMS_PROTOCOL_SOR_DP_B;
+    }
+
+    return FALSE;
+}
+
 /*!
  * Check whether rasterlock is possible between the two head states.
  * Note that we don't compare viewports, but I don't believe the viewport size
  * affects whether it is possible to rasterlock.
  */
 
-static NvBool RasterLockPossible(const NVDispHeadStateEvoRec *pHeadState1,
+static NvBool RasterLockPossible(const NVDevEvoRec *pDevEvo,
+                                 const NVDispHeadStateEvoRec *pHeadState1,
                                  const NVDispHeadStateEvoRec *pHeadState2)
 {
     const NVHwModeTimingsEvo *pTimings1 = &pHeadState1->timings;
@@ -898,6 +938,11 @@ static NvBool RasterLockPossible(const NVDispHeadStateEvoRec *pHeadState1,
         if (pHeadState1->pixelDepth != pHeadState2->pixelDepth) {
             return FALSE;
         }
+    }
+
+    if (!ProtocolsAreRasterLockPossible(
+            pDevEvo, pTimings1->protocol, pTimings2->protocol)) {
+        return FALSE;
     }
 
     return ((pTimings1->rasterSize.x       == pTimings2->rasterSize.x) &&
@@ -1932,7 +1977,7 @@ static void FinishModesetOneDisp(
         }
 
         if (pPrevHeadState &&
-            !RasterLockPossible(pHeadState, pPrevHeadState)) {
+            !RasterLockPossible(pDevEvo, pHeadState, pPrevHeadState)) {
             pDispEvo->rasterLockPossible = FALSE;
             break;
         }
@@ -2144,7 +2189,7 @@ static void FinishModesetOneGroup(RasterLockGroup *pRasterLockGroup)
             }
 
             if (pPrevHeadState &&
-                !RasterLockPossible(pHeadState, pPrevHeadState)) {
+                !RasterLockPossible(pDevEvo, pHeadState, pPrevHeadState)) {
                 rasterLockPossible = FALSE;
                 goto exitHeadLoop;
             }

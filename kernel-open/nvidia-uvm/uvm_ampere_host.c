@@ -461,3 +461,29 @@ void uvm_hal_ampere_host_tlb_invalidate_test(uvm_push_t *push,
     if (params->membar == UvmInvalidateTlbMemBarLocal)
         uvm_push_get_gpu(push)->parent->host_hal->membar_gpu(push);
 }
+
+void uvm_hal_ampere_host_l2_invalidate(uvm_push_t *push, uvm_aperture_t aperture)
+{
+    uvm_gpu_t *gpu = uvm_push_get_gpu(push);
+    NvU32 aperture_value;
+
+    if (aperture == UVM_APERTURE_SYS) {
+        aperture_value = HWCONST(C56F, MEM_OP_D, OPERATION, L2_SYSMEM_INVALIDATE);
+    }
+    else if (uvm_aperture_is_peer(aperture)) {
+        aperture_value = HWCONST(C56F, MEM_OP_D, OPERATION, L2_PEERMEM_INVALIDATE);
+    }
+    else {
+        UVM_ASSERT_MSG(false, "Invalid aperture_type %d\n", aperture);
+        return;
+    }
+
+    uvm_hal_membar(gpu, push, UVM_MEMBAR_SYS);
+
+    NV_PUSH_4U(C56F, MEM_OP_A, 0,
+               MEM_OP_B, 0,
+               MEM_OP_C, 0,
+               MEM_OP_D, aperture_value);
+
+    uvm_hal_membar(gpu, push, UVM_MEMBAR_SYS);
+}

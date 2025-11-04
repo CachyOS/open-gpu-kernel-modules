@@ -2661,6 +2661,10 @@ memdescCreateSubMem
         pMemDescNew->_flags |= MEMDESC_FLAGS_ENCRYPTED;
     else
         pMemDescNew->_flags &= ~MEMDESC_FLAGS_ENCRYPTED;
+    if (pMemDesc->_flags & MEMDESC_FLAGS_ALLOC_AS_LOCALIZED)
+        pMemDescNew->_flags |= MEMDESC_FLAGS_ALLOC_AS_LOCALIZED;
+    else
+        pMemDescNew->_flags &= ~MEMDESC_FLAGS_ALLOC_AS_LOCALIZED;
     pMemDescNew->_pageSize   = pMemDesc->_pageSize;
     pMemDescNew->pageArrayGranularity = pageArrayGranularity;
     pMemDescNew->_gpuCacheAttrib = pMemDesc->_gpuCacheAttrib;

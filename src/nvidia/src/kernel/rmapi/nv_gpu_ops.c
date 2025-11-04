@@ -4091,13 +4091,36 @@ nvGpuOpsBuildExternalAllocPtes
             }
             else
             {
-                if (memdescIsEgm(pMemDesc))
+                if (!GPU_IS_NVSWITCH_DETECTED(pMemDesc->pGpu) &&
+                    gpuIsSelfHosted(pMemDesc->pGpu))
                 {
-                    fabricBaseAddress = knvlinkGetUniqueFabricEgmBaseAddress(pMemDesc->pGpu, pKernelNvlink);
+                    // NVLink direct-connect
+                    if (memdescIsEgm(pMemDesc))
+                    {
+                        fabricBaseAddress = NVLINK_INVALID_FABRIC_ADDR;
+                    }
+                    else
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetDirectConnectBaseAddress_HAL(pMemDesc->pGpu,
+                                                                       pKernelNvlink);
+                    }
                 }
                 else
                 {
-                    fabricBaseAddress = knvlinkGetUniqueFabricBaseAddress(pMemDesc->pGpu, pKernelNvlink);
+                    // NvSwitch connected
+                    if (memdescIsEgm(pMemDesc))
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetUniqueFabricEgmBaseAddress(pMemDesc->pGpu,
+                                                                     pKernelNvlink);
+                    }
+                    else
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetUniqueFabricBaseAddress(pMemDesc->pGpu,
+                                                                  pKernelNvlink);
+                    }
                 }
             }
         }
@@ -4405,13 +4428,36 @@ nvGpuOpsBuildExternalAllocPhysAddrs
             }
             else
             {
-                if (memdescIsEgm(pMemDesc))
+                if (!GPU_IS_NVSWITCH_DETECTED(pMemDesc->pGpu) &&
+                    gpuIsSelfHosted(pMemDesc->pGpu))
                 {
-                    fabricBaseAddress = knvlinkGetUniqueFabricEgmBaseAddress(pMemDesc->pGpu, pKernelNvlink);
+                    // NVLink direct-connect
+                    if (memdescIsEgm(pMemDesc))
+                    {
+                        fabricBaseAddress = NVLINK_INVALID_FABRIC_ADDR;
+                    }
+                    else
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetDirectConnectBaseAddress_HAL(pMemDesc->pGpu,
+                                                                       pKernelNvlink);
+                    }
                 }
                 else
                 {
-                    fabricBaseAddress = knvlinkGetUniqueFabricBaseAddress(pMemDesc->pGpu, pKernelNvlink);
+                    // NvSwitch connected
+                    if (memdescIsEgm(pMemDesc))
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetUniqueFabricEgmBaseAddress(pMemDesc->pGpu,
+                                                                     pKernelNvlink);
+                    }
+                    else
+                    {
+                        fabricBaseAddress =
+                                knvlinkGetUniqueFabricBaseAddress(pMemDesc->pGpu,
+                                                                  pKernelNvlink);
+                    }
                 }
             }
         }
@@ -7407,6 +7453,89 @@ static NV_STATUS getNvswitchInfo(OBJGPU *pGpu,
     return NV_OK;
 }
 
+static NV_STATUS getNvlinkDirectConnectInfo(OBJGPU *pGpu,
+                                      NvHandle hClient,
+                                      NvHandle hSubDevice,
+                                      gpuInfo *pGpuInfo)
+{
+    NV2080_CTRL_CMD_NVLINK_GET_NVLINK_STATUS_PARAMS *nvlinkStatus;
+    NV2080_NVLINK_BIT_VECTOR localLinkMask;
+    NvU32 version  = NV2080_CTRL_NVLINK_STATUS_NVLINK_VERSION_INVALID;
+    NV_STATUS status;
+    NvU32 i;
+
+    pGpuInfo->nvlDirectConnect = NV_FALSE;
+    pGpuInfo->nvlDirectConnectMemoryWindowStart = NVLINK_INVALID_FABRIC_ADDR;
+
+    status = allocNvlinkStatus(hClient, hSubDevice, &nvlinkStatus);
+    if (status != NV_OK)
+    {
+        return status;
+    }
+
+    status = convertLinkMasksToBitVector(&nvlinkStatus->enabledLinkMask,
+                                         sizeof(nvlinkStatus->enabledLinkMask),
+                                         &nvlinkStatus->enabledLinks,
+                                         &localLinkMask);
+    if (status != NV_OK)
+    {
+        NV_PRINTF(LEVEL_ERROR, "Failed to convert enabled linkmask into bit vector! 0x%x\n", status);
+    }
+
+    for (i = 0; i < NV2080_CTRL_NVLINK_MAX_LINKS; ++i)
+    {
+        if (bitVectorTest(&localLinkMask, i) == 0)
+            continue;
+
+        if (!nvlinkStatus->linkInfo[i].connected)
+            continue;
+
+        // Skip loopback/loopout connections
+        if (nvlinkStatus->linkInfo[i].loopProperty != NV2080_CTRL_NVLINK_STATUS_LOOP_PROPERTY_NONE)
+            continue;
+
+        if (nvlinkStatus->linkInfo[i].remoteDeviceInfo.deviceType ==
+                                NV2080_CTRL_NVLINK_DEVICE_INFO_DEVICE_TYPE_GPU)
+        {
+            if (version == NV2080_CTRL_NVLINK_STATUS_NVLINK_VERSION_INVALID)
+            {
+                version = nvlinkStatus->linkInfo[i].nvlinkVersion;
+            }
+            else if (version != nvlinkStatus->linkInfo[i].nvlinkVersion)
+            {
+                // All nvlinks must have the same version
+                version = NV2080_CTRL_NVLINK_STATUS_NVLINK_VERSION_INVALID;
+                break;
+            }
+        }
+    }
+
+    if (rmControlToUvmNvlinkVersion(version) != UVM_LINK_TYPE_NONE)
+    {
+        KernelNvlink *pKernelNvlink = GPU_GET_KERNEL_NVLINK(pGpu);
+
+        NV_ASSERT(rmControlToUvmNvlinkVersion(version) != UVM_LINK_TYPE_NVLINK_1);
+
+        if (pKernelNvlink == NULL)
+        {
+            pGpuInfo->nvlDirectConnectMemoryWindowStart = NVLINK_INVALID_FABRIC_ADDR;
+        }
+        else
+        {
+            pGpuInfo->nvlDirectConnectMemoryWindowStart =
+                    knvlinkGetDirectConnectBaseAddress_HAL(pGpu, pKernelNvlink);
+            if (pGpuInfo->nvlDirectConnectMemoryWindowStart != NVLINK_INVALID_FABRIC_ADDR)
+            {
+                pGpuInfo->nvlDirectConnect = NV_TRUE;
+            }
+        }
+    }
+
+    portMemFree(nvlinkStatus);
+
+    return NV_OK;
+}
+
 NV_STATUS nvGpuOpsGetGpuInfo(const NvProcessorUuid *pUuid,
                              const gpuClientInfo *pGpuClientInfo,
                              gpuInfo *pGpuInfo)
@@ -7622,6 +7751,10 @@ NV_STATUS nvGpuOpsGetGpuInfo(const NvProcessorUuid *pUuid,
         goto cleanup;
 
     status = getNvswitchInfo(pGpu, clientHandle, subDeviceHandle, pGpuInfo);
+    if (status != NV_OK)
+        goto cleanup;
+
+    status = getNvlinkDirectConnectInfo(pGpu, clientHandle, subDeviceHandle, pGpuInfo);
     if (status != NV_OK)
         goto cleanup;
 

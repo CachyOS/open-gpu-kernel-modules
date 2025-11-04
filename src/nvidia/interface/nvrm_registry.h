@@ -889,6 +889,11 @@
 // Encoding 0 (default) - Enable Fast Scrubber
 //          1           - Disable Fast Scrubber
 
+// Type DWORD
+// Encoding 0 (default) - Asynchronous sysmem scrub-on-free
+//          1           - Synchronous sysmem scrub-on-free
+#define NV_REG_STR_RM_DISABLE_ASYNC_SYSMEM_SCRUB         "RMDisableAsyncSysmemScrub"
+
 //
 // Type DWORD
 // Controls enable of PMA memory management instead of existing legacy

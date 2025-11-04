@@ -2974,25 +2974,21 @@ NV_STATUS uvm_mmu_tlb_invalidate_phys(uvm_gpu_t *gpu)
     return uvm_push_end_and_wait(&push);
 }
 
-NV_STATUS uvm_mmu_l2_invalidate_noncoh_sysmem(uvm_gpu_t *gpu)
+NV_STATUS uvm_mmu_l2_invalidate(uvm_gpu_t *gpu, uvm_aperture_t aperture)
 {
     uvm_push_t push;
     NV_STATUS status;
 
-    // L2 cache invalidation is only done for systems with write-back 
-    // cache which is iGPUs as of now.
-    UVM_ASSERT(gpu->parent->is_integrated_gpu);
-
     status = uvm_push_begin(gpu->channel_manager,
                             UVM_CHANNEL_TYPE_MEMOPS,
                             &push,
-                            "L2 cache invalidate for sysmem");
+                            "L2 cache invalidate");
     if (status != NV_OK) {
         UVM_ERR_PRINT("L2 cache invalidation: Failed to begin push, status: %s\n", nvstatusToString(status));
         return status;
     }
 
-    gpu->parent->host_hal->l2_invalidate_noncoh_sysmem(&push);
+    gpu->parent->host_hal->l2_invalidate(&push, aperture);
 
     status = uvm_push_end_and_wait(&push);
     if (status != NV_OK) 

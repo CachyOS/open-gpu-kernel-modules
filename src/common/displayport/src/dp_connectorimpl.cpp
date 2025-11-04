@@ -199,6 +199,7 @@ void ConnectorImpl::applyRegkeyOverrides(const DP_REGKEY_DATABASE& dpRegkeyDatab
     this->bIgnoreCapsAndForceHighestLc     = dpRegkeyDatabase.bIgnoreCapsAndForceHighestLc;
     this->bDisableEffBppSST8b10b            = dpRegkeyDatabase.bDisableEffBppSST8b10b;
     this->bHDMIOnDPPlusPlus                 = dpRegkeyDatabase.bHDMIOnDPPlusPlus;
+    this->bOptimizeDscBppForTunnellingBw    = dpRegkeyDatabase.bOptimizeDscBppForTunnellingBw;
 }
 
 void ConnectorImpl::setPolicyModesetOrderMitigation(bool enabled)
@@ -1201,12 +1202,14 @@ bool ConnectorImpl::compoundQueryAttachTunneling(const DpModesetParams &modesetP
     }
 
     NvU64 bpp = modesetParams.modesetInfo.depth;
+    NvU32 dscFactor = 1U;
+
     if (pDscParams->bEnableDsc)
     {
-        bpp = divide_ceil(pDscParams->bitsPerPixelX16, 16);
+        dscFactor = 16U;
     }
 
-    NvU64 modeBwRequired = modesetParams.modesetInfo.pixelClockHz * bpp;
+    NvU64 modeBwRequired = (modesetParams.modesetInfo.pixelClockHz * bpp)/dscFactor;
     NvU64 freeTunnelingBw = allocatedDpTunnelBw - compoundQueryUsedTunnelingBw;
 
     if (modeBwRequired > freeTunnelingBw)
@@ -1895,6 +1898,15 @@ bool ConnectorImpl::compoundQueryAttachSSTDsc
 
     availableBandwidthBitsPerSecond = lc.convertMinRateToDataRate() * 8 * lc.lanes;
 
+    if (this-> bOptimizeDscBppForTunnellingBw && hal->isDpTunnelBwAllocationEnabled())
+    {
+        NvU64 freeTunnelingBw = allocatedDpTunnelBw - compoundQueryUsedTunnelingBw;
+        if (freeTunnelingBw < availableBandwidthBitsPerSecond)
+        {
+            availableBandwidthBitsPerSecond = freeTunnelingBw;
+        }
+    }
+
     warData.dpData.linkRateHz = lc.peakRate;
     warData.dpData.bIs128b132bChannelCoding = lc.bIs128b132bChannelCoding;
     warData.dpData.bDisableEffBppSST8b10b = this->bDisableEffBppSST8b10b;
@@ -1960,6 +1972,7 @@ bool ConnectorImpl::compoundQueryAttachSSTDsc
         {
             pDscParams->bEnableDsc = true;
             result = true;
+            pDscParams->bitsPerPixelX16 = bitsPerPixelX16;
 
             if (pDscParams->pDscOutParams != NULL)
             {
@@ -1968,7 +1981,6 @@ bool ConnectorImpl::compoundQueryAttachSSTDsc
                 // possible with DSC and calculated PPS and bits per pixel.
                 //
                 dpMemCopy(pDscParams->pDscOutParams->PPS, PPS, sizeof(unsigned) * DSC_MAX_PPS_SIZE_DWORD);
-                pDscParams->bitsPerPixelX16 = bitsPerPixelX16;
             }
             else
             {
@@ -6793,7 +6805,9 @@ void ConnectorImpl::notifyLongPulseInternal(bool statusConnected)
 
     // Some panels whose TCON erroneously sets DPCD 0x200 SINK_COUNT=0.
     if (main->isEDP() && hal->getSinkCount() == 0)
+    {
         hal->setSinkCount(1);
+    }
 
     // disconnect all devices
     for (ListElement * i = activeGroups.begin(); i != activeGroups.end(); i = i->next) {
@@ -7510,7 +7524,7 @@ void ConnectorImpl::notifyShortPulse()
 
 bool ConnectorImpl::detectSinkCountChange()
 {
-    if (this->linkUseMultistream())
+    if (this->linkUseMultistream() || main->isEDP())
         return false;
 
     DeviceImpl * existingDev = findDeviceInList(Address());

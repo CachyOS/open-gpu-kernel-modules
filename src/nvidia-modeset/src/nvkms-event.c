@@ -181,10 +181,8 @@ nvHandleHotplugEventDeferredWork(void *dataPtr, NvU32 dataU32)
         } else {
             nvSendDpyEventEvo(pDpyEvo, NVKMS_EVENT_TYPE_DPY_CHANGED);
         }
-
-        if (nvDpyIsHdmiEvo(pDpyEvo)) {
-            pDpyEvo->hdmi.reassessFrlLinkCaps = TRUE;
-        }
+        
+        pDpyEvo->hotplugged = TRUE;
     }
 }
 

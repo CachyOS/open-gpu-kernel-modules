@@ -165,7 +165,8 @@
 #define ROBUST_CHANNEL_UNUSED_ERROR_170                 (170)
 #define UNCORRECTABLE_DRAM_ERROR                        (171)
 #define UNCORRECTABLE_SRAM_ERROR                        (172)
-#define ROBUST_CHANNEL_LAST_ERROR                       (172)
+#define C2C_FATAL_LINK_FAILURE                          (173)
+#define ROBUST_CHANNEL_LAST_ERROR                       (173)
 
 // Indexed CE reference
 #define ROBUST_CHANNEL_CE_ERROR(x)                                        \

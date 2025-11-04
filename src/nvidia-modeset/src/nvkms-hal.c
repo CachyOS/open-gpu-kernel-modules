@@ -80,6 +80,7 @@ enum NvKmsAllocDeviceStatus nvAssignEvoCaps(NVDevEvoPtr pDevEvo)
               _dpYCbCr422MaxBpc,                                          \
               _hdmiYCbCr422MaxBpc,                                        \
               _hdmiTmds10BpcMaxPClkMHz,                                   \
+              _rasterLockAcrossProtocolsAllowed,                          \
               _validNIsoFormatMask,                                       \
               _maxPitch,                                                  \
               _maxWidthInBytes,                                           \
@@ -112,6 +113,7 @@ enum NvKmsAllocDeviceStatus nvAssignEvoCaps(NVDevEvoPtr pDevEvo)
             .dpYCbCr422MaxBpc = _dpYCbCr422MaxBpc,                        \
             .hdmiYCbCr422MaxBpc = _hdmiYCbCr422MaxBpc,                    \
             .hdmiTmds10BpcMaxPClkMHz = _hdmiTmds10BpcMaxPClkMHz,          \
+            .rasterLockAcrossProtocolsAllowed = _rasterLockAcrossProtocolsAllowed, \
         }                                                                 \
     }
 
@@ -172,40 +174,41 @@ enum NvKmsAllocDeviceStatus nvAssignEvoCaps(NVDevEvoPtr pDevEvo)
         const NVEvoCapsRec evoCaps;
     } dispTable[] = {
         /*
-         * hdmiTmds10BpcMaxPClkMHz----------------------+
-         * hdmiYCbCr422MaxBpc-----------------------+   |
-         * dpYCbCr422MaxBpc---------------------+   |   |
-         * inputLutAppliesToBase ------------+  |   |   |
-         * supportsYUV2020 ---------------+  |  |   |   |
-         * supportsHDMI20 -------------+  |  |  |   |   |
-         * supportsDP13 ------------+  |  |  |  |   |   |
-         * pEvoHal --------------+  |  |  |  |  |   |   |
-         * windowClassPrefix     |  |  |  |  |  |   |   |
-         * classPrefix |         |  |  |  |  |  |   |   |
-         *         |   |         |  |  |  |  |  |   |   |
+         * rasterLockAcrossProtocolsAllowed------------------+
+         * hdmiTmds10BpcMaxPClkMHz----------------------+    |
+         * hdmiYCbCr422MaxBpc-----------------------+   |    |
+         * dpYCbCr422MaxBpc---------------------+   |   |    |
+         * inputLutAppliesToBase ------------+  |   |   |    |
+         * supportsYUV2020 ---------------+  |  |   |   |    |
+         * supportsHDMI20 -------------+  |  |  |   |   |    |
+         * supportsDP13 ------------+  |  |  |  |   |   |    |
+         * pEvoHal --------------+  |  |  |  |  |   |   |    |
+         * windowClassPrefix     |  |  |  |  |  |   |   |    |
+         * classPrefix |         |  |  |  |  |  |   |   |    |
+         *         |   |         |  |  |  |  |  |   |   |    |
          */
-        ENTRY_NVD(CC, CC, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324),
-        ENTRY_NVD(CB, CB, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324),
+        ENTRY_NVD(CC, CC, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324, 0),
+        ENTRY_NVD(CB, CB, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324, 0),
         /* Blackwell GB20X */
-        ENTRY_NVD(CA, CA, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324),
+        ENTRY_NVD(CA, CA, &nvEvoCA, 1, 1, 1, 0, 12, 12, 324, 1),
         /* Blackwell */
-        ENTRY_NVD(C9, C9, &nvEvoC9, 1, 1, 1, 0, 12, 12, 324),
+        ENTRY_NVD(C9, C9, &nvEvoC9, 1, 1, 1, 0, 12, 12, 324, 1),
         /* Ada */
-        ENTRY_NVD(C7, C6, &nvEvoC6, 1, 1, 1, 0, 12, 12, 324),
+        ENTRY_NVD(C7, C6, &nvEvoC6, 1, 1, 1, 0, 12, 12, 324, 1),
         /* Ampere */
-        ENTRY_NVD(C6, C6, &nvEvoC6, 1, 1, 1, 0, 12, 12, 324),
+        ENTRY_NVD(C6, C6, &nvEvoC6, 1, 1, 1, 0, 12, 12, 324, 1),
         /* Turing */
-        ENTRY_NVD(C5, C5, &nvEvoC5, 1, 1, 1, 0, 12, 12, 0),
+        ENTRY_NVD(C5, C5, &nvEvoC5, 1, 1, 1, 0, 12, 12, 0,   1),
         /* Volta */
-        ENTRY_NVD(C3, C3, &nvEvoC3, 1, 1, 1, 0, 12, 12, 0),
+        ENTRY_NVD(C3, C3, &nvEvoC3, 1, 1, 1, 0, 12, 12, 0,   1),
         /* gp10x */
-        ENTRY_EVO(98,     &nvEvo97, 1, 1, 1, 1, 12, 12, 0),
+        ENTRY_EVO(98,     &nvEvo97, 1, 1, 1, 1, 12, 12, 0,   1),
         /* gp100 */
-        ENTRY_EVO(97,     &nvEvo97, 1, 1, 1, 1, 12, 12, 0),
+        ENTRY_EVO(97,     &nvEvo97, 1, 1, 1, 1, 12, 12, 0,   1),
         /* gm20x */
-        ENTRY_EVO(95,     &nvEvo94, 0, 1, 0, 1, 8,  0,  0),
+        ENTRY_EVO(95,     &nvEvo94, 0, 1, 0, 1, 8,  0,  0,   1),
         /* gm10x */
-        ENTRY_EVO(94,     &nvEvo94, 0, 0, 0, 1, 8,  0,  0),
+        ENTRY_EVO(94,     &nvEvo94, 0, 0, 0, 1, 8,  0,  0,   1),
     };
 
     int i;

@@ -126,7 +126,7 @@ memmgrScrubRegistryOverrides_GA100
          pGpu->getProperty(pGpu, PDB_PROP_GPU_IS_VIRTUALIZATION_MODE_HOST_VGPU) ||
          IS_VIRTUAL_WITHOUT_SRIOV(pGpu) ||
          RMCFG_FEATURE_PLATFORM_GSP ||
-         pGpu->getProperty(pGpu, PDB_PROP_GPU_BROKEN_FB) ||
+         (pGpu->getProperty(pGpu, PDB_PROP_GPU_BROKEN_FB) && !pMemoryManager->bSysmemCompressionSupportDef) ||
          IsSLIEnabled(pGpu))
     {
         pMemoryManager->bScrubOnFreeEnabled = NV_FALSE;

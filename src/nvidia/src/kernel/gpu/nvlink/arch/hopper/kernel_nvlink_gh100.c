@@ -88,11 +88,6 @@ knvlinkValidateFabricBaseAddress_GH100
     NvU64         fabricBaseAddr
 )
 {
-    MemoryManager *pMemoryManager = GPU_GET_MEMORY_MANAGER(pGpu);
-    NvU64          fbSizeBytes;
-
-    fbSizeBytes = pMemoryManager->Ram.fbTotalMemSizeMb << 20;
-
     //
     // Hopper SKUs will be paired with NVSwitches (Limerock-next) supporting 2K
     // mapslots that can cover 512GB each. Make sure that the fabric base
@@ -104,9 +99,6 @@ knvlinkValidateFabricBaseAddress_GH100
     {
         return NV_ERR_INVALID_ARGUMENT;
     }
-
-    // Align fbSize to mapslot size.
-    fbSizeBytes = RM_ALIGN_UP(fbSizeBytes, NVBIT64(39));
 
     return NV_OK;
 }

@@ -1365,6 +1365,20 @@ struct uvm_parent_gpu_struct
         NvU64 base_address;
     } egm;
 
+    // Peer VIDMEM base offset used when creating GPA PTEs for
+    // peer mappings. RM will set this offset on systems where
+    // peer accesses are not zero-based (NVLINK 5+).
+    struct
+    {
+        // Is the GPU directly connected to peer GPUs.
+        bool is_direct_connected;
+
+        // 48-bit fabric memory physical offset that peer gpus need in order
+        // access to be rounted to the correct peer.
+        // Each memory window is 4TB, so the upper 6 bits are used for rounting.
+        NvU64 peer_gpa_memory_window_start;
+    } peer_address_info;
+
     uvm_test_parent_gpu_inject_error_t test;
 
     // PASID ATS
@@ -1618,6 +1632,8 @@ NvU64 uvm_gpu_peer_ref_count(const uvm_gpu_t *gpu0, const uvm_gpu_t *gpu1);
 uvm_aperture_t uvm_gpu_egm_peer_aperture(uvm_parent_gpu_t *local_gpu, uvm_parent_gpu_t *remote_gpu);
 
 bool uvm_parent_gpus_are_nvswitch_connected(const uvm_parent_gpu_t *parent_gpu0, const uvm_parent_gpu_t *parent_gpu1);
+
+bool uvm_parent_gpus_are_direct_connected(const uvm_parent_gpu_t *parent_gpu0, const uvm_parent_gpu_t *parent_gpu1);
 
 static bool uvm_gpus_are_smc_peers(const uvm_gpu_t *gpu0, const uvm_gpu_t *gpu1)
 {

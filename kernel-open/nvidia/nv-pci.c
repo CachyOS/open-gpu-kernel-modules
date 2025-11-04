@@ -1661,6 +1661,8 @@ nv_pci_probe
 
     nv_kmem_cache_free_stack(sp);
 
+    nvidia_modeset_probe(nvl);
+
     return 0;
 
 goto err_free_all;
@@ -1759,6 +1761,8 @@ nv_pci_remove(struct pci_dev *pci_dev)
      * outlives all enqueued work items.
      */
     nv_linux_stop_open_q(nvl);
+
+    nvidia_modeset_remove(nv->gpu_id);
 
     LOCK_NV_LINUX_DEVICES();
     down(&nvl->ldata_lock);
@@ -1899,14 +1903,18 @@ nv_pci_shutdown(struct pci_dev *pci_dev)
 {
     nv_linux_state_t *nvl = pci_get_drvdata(pci_dev);
 
-    if ((nvl != NULL) && nvl->is_forced_shutdown)
-    {
-        nvl->is_forced_shutdown = NV_FALSE;
-        return;
-    }
-
     if (nvl != NULL)
     {
+        nv_state_t *nv = NV_STATE_PTR(nvl);
+
+        if (nvl->is_forced_shutdown)
+        {
+            nvl->is_forced_shutdown = NV_FALSE;
+            return;
+        }
+
+        nvidia_modeset_remove(nv->gpu_id);
+
         nvl->nv_state.is_shutdown = NV_TRUE;
     }
 

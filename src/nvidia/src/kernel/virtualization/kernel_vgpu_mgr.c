@@ -1322,9 +1322,22 @@ kvgpumgrGuestRegister(OBJGPU *pGpu,
         }
     }
 
+    /* On device-vm, swizzId is reserved during A084 object creation */
+    if (IS_MIG_ENABLED(pGpu) && (osIsVgpuDeviceVmPresent() == NV_OK))
+    {
+        NvU32 partitionFlag;
+
+        if (swizzId >= KMIGMGR_MAX_GPU_SWIZZID)
+            return NV_ERR_INVALID_ARGUMENT;
+
+        NV_ASSERT_OK_OR_RETURN(kvgpumgrGetPartitionFlag(vgpuType, &partitionFlag));
+
+        NV_ASSERT_OK_OR_RETURN(kvgpumgrGetSwizzId(pGpu, pPhysGpuInfo, partitionFlag,
+                               pPhysGpuInfo->vgpuTypes[vgpuTypeIdx], &swizzId));
+
+    }
+
     /*
-     * For MIG mode, vGPU type is already validated based on swizzid in
-     * NVA081_CTRL_CMD_VGPU_CONFIG_[GET_FREE|VALIDATE]_SWIZZID RmCtrl.
      * For heterogeneous vGPU mode, vGPU type is already validated based on placement ID
      * in NVA081_CTRL_CMD_VGPU_CONFIG_UPDATE_HETEROGENEOUS_INFO RmCtrl.
      * Both the RmCtrls are done before allocating the A084 object.
@@ -2101,14 +2114,17 @@ kvgpumgrGetSwizzId(OBJGPU *pGpu,
     NvU32 id;
     NV_STATUS rmStatus = NV_OK;
     VGPU_TYPE *existingVgpuTypeInfo = NULL;
+    NvBool bIsSwizzIdReserved = NV_FALSE;
 
     swizzIdInUseMask = kmigmgrGetSwizzIdInUseMask(pGpu, pKernelMIGManager);
-
-    *swizzId = KMIGMGR_SWIZZID_INVALID;
 
     // Determine valid swizzids not assigned to any vGPU device.
     for (id = 0; id < KMIGMGR_MAX_GPU_SWIZZID; id++)
     {
+        //If specified GI is present, ignore other GIs
+        if ((*swizzId != KMIGMGR_SWIZZID_INVALID) && (*swizzId != id))
+            continue;
+
         if (NVBIT64(id) & swizzIdInUseMask)
         {
             KERNEL_MIG_GPU_INSTANCE *pKernelMIGGpuInstance;
@@ -2173,13 +2189,14 @@ kvgpumgrGetSwizzId(OBJGPU *pGpu,
                 {
                     NV_ASSERT_OK_OR_RETURN(_kvgpumgrSetAssignedSwizzIdMask(pGpu, vgpuTypeInfo, pKernelMIGGpuInstance->swizzId));
                     *swizzId = pKernelMIGGpuInstance->swizzId;
+                    bIsSwizzIdReserved = NV_TRUE;
                     break;
                 }
             }
         }
     }
 
-    if (*swizzId == KMIGMGR_SWIZZID_INVALID)
+    if (bIsSwizzIdReserved == NV_FALSE)
     {
         return NV_ERR_INVALID_STATE;
     }
@@ -3688,6 +3705,10 @@ kvgpumgrSetSupportedPlacementIds(OBJGPU *pGpu)
     if (!pPgpuInfo->heterogeneousTimesliceSizesSupported && !pPgpuInfo->homogeneousPlacementSupported)
         return rmStatus;
 
+    /* skip placement Id calculation if already set */
+    if (pPgpuInfo->isPlacementIdInfoSet)
+        return rmStatus;
+
     hostChannelCount = kfifoChidMgrGetNumChannels(pGpu, pKernelFifo, pKernelFifo->ppChidMgr[0]);
 
     pKernelVgpuTypePlacementInfo = &pPgpuInfo->kernelVgpuTypePlacementInfo;
@@ -3865,6 +3886,9 @@ kvgpumgrSetSupportedPlacementIds(OBJGPU *pGpu)
                 _kvgpumgrSetHomogeneousResources(pGpu, pPgpuInfo, vmmuSegmentMin, hostChannelCount);
         }
     }
+
+    if (rmStatus == NV_OK)
+        pPgpuInfo->isPlacementIdInfoSet = NV_TRUE;
 
     return rmStatus;
 }

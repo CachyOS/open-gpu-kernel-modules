@@ -615,11 +615,13 @@ static void DpyPostColorSpaceOrRangeSetEvo(NVDpyEvoPtr pDpyEvo)
     NvU32 head;
     NvBool colorSpaceChanged = FALSE;
     NvBool colorBpcChanged = FALSE;
+    NVDpyAttributeColor tmpDpyColor;
 
     if (pDpyEvo->apiHead == NV_INVALID_HEAD) {
         return;
     }
     pApiHeadState = &pDispEvo->apiHeadState[pDpyEvo->apiHead];
+    tmpDpyColor = pApiHeadState->attributes.color;
 
     nvAssert((pApiHeadState->hwHeadsMask) != 0x0 &&
              (nvDpyIdIsInDpyIdList(pDpyEvo->id, pApiHeadState->activeDpys)));
@@ -651,14 +653,13 @@ static void DpyPostColorSpaceOrRangeSetEvo(NVDpyEvoPtr pDpyEvo)
         return;
     }
 
+    tmpDpyColor.format = colorSpace;
+    tmpDpyColor.range = colorRange;
+    tmpDpyColor.bpc = colorBpc;
+
     if (nvDpyIsHdmiEvo(pDpyEvo) &&
-            (colorBpc > pApiHeadState->attributes.color.bpc)) {
-        NVDpyAttributeColor tmpDpyColor = pApiHeadState->attributes.color;
-
-        tmpDpyColor.format = colorSpace;
-        tmpDpyColor.range = colorRange;
-        tmpDpyColor.bpc = colorBpc;
-
+            ((colorBpc > pApiHeadState->attributes.color.bpc) || 
+              colorSpaceChanged)) {
         /*
          * For HDMI FRL, downgrade the selected color bpc to the current color
          * bpc so that the current color bpc remains unchanged.
@@ -679,15 +680,11 @@ static void DpyPostColorSpaceOrRangeSetEvo(NVDpyEvoPtr pDpyEvo)
                 }
             }
         }
+    } 
 
-        pApiHeadState->attributes.color.format = tmpDpyColor.format;
-        pApiHeadState->attributes.color.range = tmpDpyColor.range;
-        pApiHeadState->attributes.color.bpc = tmpDpyColor.bpc;
-    } else {
-        pApiHeadState->attributes.color.format = colorSpace;
-        pApiHeadState->attributes.color.range = colorRange;
-        pApiHeadState->attributes.color.bpc = colorBpc;
-    }
+    pApiHeadState->attributes.color.format = tmpDpyColor.format;
+    pApiHeadState->attributes.color.range = tmpDpyColor.range;
+    pApiHeadState->attributes.color.bpc = tmpDpyColor.bpc;
 
     /* Update hardware's current colorSpace and colorRange */
     FOR_EACH_EVO_HW_HEAD_IN_MASK(pApiHeadState->hwHeadsMask, head) {

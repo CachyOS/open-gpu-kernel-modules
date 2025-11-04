@@ -101,6 +101,7 @@ static int nv_drm_revoke_modeset_permission(struct drm_device *dev,
                                             NvU32 dpyId);
 static int nv_drm_revoke_sub_ownership(struct drm_device *dev);
 
+static DEFINE_MUTEX(dev_list_mutex);
 static struct nv_drm_device *dev_list = NULL;
 
 static const char* nv_get_input_colorspace_name(
@@ -2067,8 +2068,10 @@ void nv_drm_register_drm_device(const struct NvKmsKapiGpuInfo *gpu_info)
 
     /* Add NVIDIA-DRM device into list */
 
+    mutex_lock(&dev_list_mutex);
     nv_dev->next = dev_list;
     dev_list = nv_dev;
+    mutex_unlock(&dev_list_mutex);
 
     return; /* Success */
 
@@ -2106,22 +2109,81 @@ int nv_drm_probe_devices(void)
 }
 #endif
 
+static struct nv_drm_device*
+nv_drm_pop_device(void)
+{
+    struct nv_drm_device *nv_dev;
+
+    mutex_lock(&dev_list_mutex);
+
+    nv_dev = dev_list;
+    if (nv_dev) {
+        dev_list = nv_dev->next;
+        nv_dev->next = NULL;
+    }
+
+    mutex_unlock(&dev_list_mutex);
+    return nv_dev;
+}
+
+static struct nv_drm_device*
+nv_drm_find_and_remove_device(NvU32 gpuId)
+{
+    struct nv_drm_device **pPrev = &dev_list;
+    struct nv_drm_device *nv_dev;
+
+    mutex_lock(&dev_list_mutex);
+    nv_dev = *pPrev;
+
+    while (nv_dev) {
+        if (nv_dev->gpu_info.gpu_id == gpuId) {
+            /* Remove it from the linked list */
+            *pPrev = nv_dev->next;
+            nv_dev->next = NULL;
+            break;
+        }
+
+        pPrev = &nv_dev->next;
+        nv_dev = *pPrev;
+    }
+
+    mutex_unlock(&dev_list_mutex);
+    return nv_dev;
+}
+
+static void nv_drm_dev_destroy(struct nv_drm_device *nv_dev)
+{
+    struct drm_device *dev = nv_dev->dev;
+
+    nv_drm_dev_unload(dev);
+    drm_dev_put(dev);
+    nv_drm_free(nv_dev);
+}
+
+/*
+ * Unregister a single NVIDIA DRM device.
+ */
+void nv_drm_remove(NvU32 gpuId)
+{
+    struct nv_drm_device *nv_dev = nv_drm_find_and_remove_device(gpuId);
+
+    if (nv_dev) {
+        NV_DRM_DEV_LOG_INFO(nv_dev, "Removing device");
+        drm_dev_unplug(nv_dev->dev);
+        nv_drm_dev_destroy(nv_dev);
+    }
+}
+
 /*
  * Unregister all NVIDIA DRM devices.
  */
 void nv_drm_remove_devices(void)
 {
-    while (dev_list != NULL) {
-        struct nv_drm_device *next = dev_list->next;
-        struct drm_device *dev = dev_list->dev;
+    struct nv_drm_device *nv_dev;
 
-        drm_dev_unregister(dev);
-        nv_drm_dev_unload(dev);
-        drm_dev_put(dev);
-
-        nv_drm_free(dev_list);
-
-        dev_list = next;
+    while ((nv_dev = nv_drm_pop_device())) {
+        drm_dev_unregister(nv_dev->dev);
+        nv_drm_dev_destroy(nv_dev);
     }
 }
 
@@ -2143,11 +2205,10 @@ void nv_drm_remove_devices(void)
  */
 void nv_drm_suspend_resume(NvBool suspend)
 {
-    static DEFINE_MUTEX(nv_drm_suspend_mutex);
     static NvU32 nv_drm_suspend_count = 0;
     struct nv_drm_device *nv_dev;
 
-    mutex_lock(&nv_drm_suspend_mutex);
+    mutex_lock(&dev_list_mutex);
 
     /*
      * Count the number of times the driver is asked to suspend. Suspend all DRM
@@ -2195,7 +2256,7 @@ void nv_drm_suspend_resume(NvBool suspend)
     }
 
 done:
-    mutex_unlock(&nv_drm_suspend_mutex);
+    mutex_unlock(&dev_list_mutex);
 }
 
 #endif /* NV_DRM_AVAILABLE */

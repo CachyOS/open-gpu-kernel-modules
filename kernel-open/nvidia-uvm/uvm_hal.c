@@ -221,7 +221,7 @@ static uvm_hal_class_ops_t host_table[] =
             .access_counter_clear_all = uvm_hal_maxwell_access_counter_clear_all_unsupported,
             .access_counter_clear_targeted = uvm_hal_maxwell_access_counter_clear_targeted_unsupported,
             .access_counter_query_clear_op = uvm_hal_maxwell_access_counter_query_clear_op_unsupported,
-            .l2_invalidate_noncoh_sysmem = uvm_hal_host_l2_invalidate_noncoh_sysmem_unsupported,
+            .l2_invalidate = uvm_hal_host_l2_invalidate_unsupported,
             .get_time = uvm_hal_maxwell_get_time,
         }
     },
@@ -287,6 +287,7 @@ static uvm_hal_class_ops_t host_table[] =
             .tlb_invalidate_all = uvm_hal_ampere_host_tlb_invalidate_all,
             .tlb_invalidate_va = uvm_hal_ampere_host_tlb_invalidate_va,
             .tlb_invalidate_test = uvm_hal_ampere_host_tlb_invalidate_test,
+            .l2_invalidate = uvm_hal_ampere_host_l2_invalidate,
         }
     },
     {
@@ -315,8 +316,8 @@ static uvm_hal_class_ops_t host_table[] =
             .tlb_invalidate_phys = uvm_hal_blackwell_host_tlb_invalidate_phys,
             .tlb_invalidate_test = uvm_hal_blackwell_host_tlb_invalidate_test,
             .tlb_flush_prefetch = uvm_hal_blackwell_host_tlb_flush_prefetch,
-            .l2_invalidate_noncoh_sysmem = uvm_hal_blackwell_host_l2_invalidate_noncoh_sysmem,
             .access_counter_query_clear_op = uvm_hal_blackwell_access_counter_query_clear_op_gb100,
+            .l2_invalidate = uvm_hal_blackwell_host_l2_invalidate,
         }
     },
     {
@@ -1162,10 +1163,11 @@ void uvm_hal_ce_memcopy_patch_src_stub(uvm_push_t *push, uvm_gpu_address_t *src)
 {
 }
 
-void uvm_hal_host_l2_invalidate_noncoh_sysmem_unsupported(uvm_push_t *push)
+void uvm_hal_host_l2_invalidate_unsupported(uvm_push_t *push, uvm_aperture_t aperture)
 {
     uvm_gpu_t *gpu = uvm_push_get_gpu(push);
     UVM_ERR_PRINT("L2 cache invalidation: Called on unsupported GPU %s (arch: 0x%x, impl: 0x%x)\n", 
                    uvm_gpu_name(gpu), gpu->parent->rm_info.gpuArch, gpu->parent->rm_info.gpuImplementation);
-    UVM_ASSERT_MSG(false, "host l2_invalidate_noncoh_sysmem called on unsupported GPU\n");
+    UVM_ASSERT_MSG(false, "L2 invalidate is not supported on %s",
+                   uvm_parent_gpu_name(gpu->parent));
 }

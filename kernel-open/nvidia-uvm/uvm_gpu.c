@@ -107,6 +107,7 @@ static void fill_parent_gpu_info(uvm_parent_gpu_t *parent_gpu, const UvmGpuInfo 
     }
 
     parent_gpu->nvswitch_info.is_nvswitch_connected = gpu_info->connectedToSwitch;
+    parent_gpu->peer_address_info.is_direct_connected = gpu_info->nvlDirectConnect;
 
     // nvswitch is routed via physical pages, where the upper 13-bits of the
     // 47-bit address space holds the routing information for each peer.
@@ -114,6 +115,9 @@ static void fill_parent_gpu_info(uvm_parent_gpu_t *parent_gpu, const UvmGpuInfo 
     if (parent_gpu->nvswitch_info.is_nvswitch_connected) {
         parent_gpu->nvswitch_info.fabric_memory_window_start = gpu_info->nvswitchMemoryWindowStart;
         parent_gpu->nvswitch_info.egm_fabric_memory_window_start = gpu_info->nvswitchEgmMemoryWindowStart;
+    }
+    else if (parent_gpu->peer_address_info.is_direct_connected) {
+        parent_gpu->peer_address_info.peer_gpa_memory_window_start = gpu_info->nvlDirectConnectMemoryWindowStart;
     }
 
     parent_gpu->ats.non_pasid_ats_enabled = gpu_info->nonPasidAtsSupport;
@@ -2110,6 +2114,16 @@ bool uvm_parent_gpus_are_nvswitch_connected(const uvm_parent_gpu_t *parent_gpu0,
     return false;
 }
 
+bool uvm_parent_gpus_are_direct_connected(const uvm_parent_gpu_t *parent_gpu0, const uvm_parent_gpu_t *parent_gpu1)
+{
+    if (parent_gpu0 != parent_gpu1 &&
+        parent_gpu0->peer_address_info.is_direct_connected &&
+        parent_gpu1->peer_address_info.is_direct_connected)
+        return true;
+
+    return false;
+}
+
 NV_STATUS uvm_gpu_check_ecc_error_no_rm(uvm_gpu_t *gpu)
 {
     // We may need to call service_interrupts() which cannot be done in the top
@@ -3068,7 +3082,9 @@ uvm_gpu_phys_address_t uvm_gpu_peer_phys_address(uvm_gpu_t *owning_gpu, NvU64 ad
 {
     uvm_aperture_t aperture = uvm_gpu_peer_aperture(accessing_gpu, owning_gpu);
 
-    if (uvm_parent_gpus_are_nvswitch_connected(accessing_gpu->parent, owning_gpu->parent))
+    if (uvm_parent_gpus_are_direct_connected(accessing_gpu->parent, owning_gpu->parent))
+        address += owning_gpu->parent->peer_address_info.peer_gpa_memory_window_start;
+    else if (uvm_parent_gpus_are_nvswitch_connected(accessing_gpu->parent, owning_gpu->parent))
         address += owning_gpu->parent->nvswitch_info.fabric_memory_window_start;
 
     return uvm_gpu_phys_address(aperture, address);

@@ -175,6 +175,7 @@ static NVHDMIPKT_RESULT SetFRLLinkRate(NVHDMIPKT_CLASS  *pThis,
                                        const NvU32       subDevice,
                                        const NvU32       displayId,
                                        const NvBool      bFakeLt,
+                                       const NvBool      bDoNotSkipLt,
                                        const NvBool      bLinkAssessmentOnly,
                                        const NvU32       frlRate)
 {
@@ -184,6 +185,7 @@ static NVHDMIPKT_RESULT SetFRLLinkRate(NVHDMIPKT_CLASS  *pThis,
     params.displayId = displayId;
     params.data = frlRate;
     params.bFakeLt = bFakeLt;
+    params.bDoNotSkipLt = bDoNotSkipLt;
     params.bLinkAssessmentOnly = bLinkAssessmentOnly;
 
 #if NVHDMIPKT_RM_CALLS_INTERNAL
@@ -275,14 +277,16 @@ performLinkTraningToAssessFRLLink(NVHDMIPKT_CLASS          *pThis,
     {
         // If the display is active and the maximum link rate matches the link
         // rate required for the current mode timings, avoid marking the set
-        // link configuration call as an assessment only. This prevents
-        // re-training after the assessment.
+        // link configuration call as an assessment only. This allows us to
+        // re-train the existing link now instead of after the assessment.
+        // In addition, do not allow link training to be skipped to ensure
+        // we succesfully recover an existing FRL config.
         const NvBool bLinkAssessmentOnly =
             bIsDisplayActive ? (nv0073currFRLRate != maxFRLRate) : NV_TRUE;
 
         if (SetFRLLinkRate(pThis, subDevice, displayId,
-                           NV_FALSE /* bFakeLt */, bLinkAssessmentOnly,
-                           maxFRLRate) == NVHDMIPKT_SUCCESS)
+                           NV_FALSE /* bFakeLt */, NV_TRUE /* bDoNotSkipLt */,
+                           bLinkAssessmentOnly, maxFRLRate) == NVHDMIPKT_SUCCESS)
         {
             break;
         }
@@ -299,11 +303,13 @@ performLinkTraningToAssessFRLLink(NVHDMIPKT_CLASS          *pThis,
 
             if (SetFRLLinkRate(pThis, subDevice, displayId,
                                bFakeLt, NV_FALSE /* bLinkAssessmentOnly */,
+                               NV_FALSE /* bDoNotSkipLt */,
                                currFRLRate) != NVHDMIPKT_SUCCESS)
             {
                 if (!bFakeLt) {
                     if (SetFRLLinkRate(pThis, subDevice, displayId,
                                        NV_TRUE, NV_FALSE /* bLinkAssessmentOnly */,
+                                       NV_FALSE /* bDoNotSkipLt */,
                                        currFRLRate) != NVHDMIPKT_SUCCESS) {
                         NvHdmiPkt_Assert(0);
                     }
@@ -1130,6 +1136,19 @@ hdmiQueryFRLConfigC671(NVHDMIPKT_CLASS                         *pThis,
         NvU32 bppMinX16Itr, bppMaxX16Itr;
         NvBool bHasPreCalcFRLData = NV_FALSE;
 
+        NvBool forceFRLRateDSC = pClientCtrl->forceFRLRate;
+        HDMI_FRL_DATA_RATE requestedFRLRate = pClientCtrl->frlRate;
+ 
+#if defined(NVHDMIPKT_NVKMS)
+        NvU32 rr = (pVidTransInfo->pTiming->pclk * (NvU64)10000) /
+                   (pVidTransInfo->pTiming->HTotal * (NvU64)pVidTransInfo->pTiming->VTotal);
+
+        if (!pVidTransInfo->pTiming->interlaced && (rr >= 480)) {
+            forceFRLRateDSC = NV_TRUE;
+            requestedFRLRate = dscMaxFRLRate;
+        }
+#endif
+
         // DSC_All_bpp = 1:
         //     Lower the compression ratio better the pixel quality, hence a high bppTarget value will be ideal
         //     DSC_All_bpp = 1 allows us the flexibility to use a bppTarget setting different from the primary compressed format
@@ -1237,16 +1256,16 @@ hdmiQueryFRLConfigC671(NVHDMIPKT_CLASS                         *pThis,
             frlParams.compressionInfo.hSlices    = NV_UNSIGNED_DIV_CEIL(pVidTransInfo->pTiming->HVisible, pClientCtrl->sliceWidth);
         }
 
-        if (pClientCtrl->forceFRLRate)
+        if (forceFRLRateDSC)
         {
-            if (pClientCtrl->frlRate > dscMaxFRLRate)
+            if (requestedFRLRate > dscMaxFRLRate)
             {
                 result = NVHDMIPKT_FAIL;
                 goto frlQuery_fail;
             }
 
-            minFRLRateItr = pClientCtrl->frlRate;
-            maxFRLRateItr = pClientCtrl->frlRate;
+            minFRLRateItr = requestedFRLRate;
+            maxFRLRateItr = requestedFRLRate;
         }
 
         if (pClientCtrl->forceBppx16)
@@ -1419,6 +1438,7 @@ hdmiSetFRLConfigC671(NVHDMIPKT_CLASS             *pThis,
 {
     return SetFRLLinkRate(pThis, subDevice, displayId, bFakeLt,
                           NV_FALSE /* bLinkAssessmentOnly */,
+                          NV_FALSE /* bDoNotSkipLt */,
                           translateFRLRateToNv0073SetHdmiFrlConfig(pFRLConfig->frlRate));
 }
 
@@ -1432,6 +1452,7 @@ hdmiClearFRLConfigC671(NVHDMIPKT_CLASS    *pThis,
 {
     return SetFRLLinkRate(pThis, subDevice, displayId,
                           NV_FALSE, NV_FALSE /* bLinkAssessmentOnly */,
+                          NV_FALSE /* bDoNotSkipLt */,
                           NV0073_CTRL_HDMI_FRL_DATA_SET_FRL_RATE_NONE);
 }
 

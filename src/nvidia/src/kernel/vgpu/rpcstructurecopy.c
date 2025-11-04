@@ -393,7 +393,7 @@ NV_STATUS deserialize_NV2080_CTRL_GR_GET_SM_ISSUE_RATE_MODIFIER_V2_PARAMS_v2B_06
 
         grSmIssueRateModifierV2->smIssueRateModifierListSize = gr_get_sm_issue_rate_modifier_v2B_06->smIssueRateModifierListSize;
 
-        if (gr_get_sm_issue_rate_modifier_v2B_06->smIssueRateModifierListSize >= NV2080_CTRL_GR_SM_ISSUE_RATE_MODIFIER_V2_MAX_LIST_SIZE_v2B_06)
+        if (gr_get_sm_issue_rate_modifier_v2B_06->smIssueRateModifierListSize > NV2080_CTRL_GR_SM_ISSUE_RATE_MODIFIER_V2_MAX_LIST_SIZE_v2B_06)
         {
             return NV_ERR_OUT_OF_RANGE;
         }
@@ -433,7 +433,7 @@ NV_STATUS deserialize_NV2080_CTRL_GR_GET_SM_ISSUE_THROTTLE_CTRL_PARAMS_v2B_10(NV
 
         grSmIssueThrottleCtrl->smIssueThrottleCtrlListSize = gr_get_sm_issue_throttle_ctrl_v2B_10->smIssueThrottleCtrlListSize;
 
-        if (gr_get_sm_issue_throttle_ctrl_v2B_10->smIssueThrottleCtrlListSize >= NV2080_CTRL_GR_SM_ISSUE_THROTTLE_CTRL_MAX_LIST_SIZE_v2B_10)
+        if (gr_get_sm_issue_throttle_ctrl_v2B_10->smIssueThrottleCtrlListSize > NV2080_CTRL_GR_SM_ISSUE_THROTTLE_CTRL_MAX_LIST_SIZE_v2B_10)
         {
             return NV_ERR_OUT_OF_RANGE;
         }
@@ -859,7 +859,7 @@ NV_STATUS deserialize_NV2080_CTRL_INTERNAL_STATIC_GR_GET_SM_ISSUE_RATE_MODIFIER_
         {
             smIssueRateModifierV2->smIssueRateModifierV2[i].smIssueRateModifierListSize = rate_modifier_v2B_06->smIssueRateModifierV2[i].smIssueRateModifierListSize;
 
-            if (rate_modifier_v2B_06->smIssueRateModifierV2[i].smIssueRateModifierListSize >= NV2080_CTRL_GR_SM_ISSUE_RATE_MODIFIER_V2_MAX_LIST_SIZE_v2B_06)
+            if (rate_modifier_v2B_06->smIssueRateModifierV2[i].smIssueRateModifierListSize > NV2080_CTRL_GR_SM_ISSUE_RATE_MODIFIER_V2_MAX_LIST_SIZE_v2B_06)
             {
                 return NV_ERR_OUT_OF_RANGE;
             }
@@ -903,7 +903,7 @@ NV_STATUS deserialize_NV2080_CTRL_INTERNAL_STATIC_GR_GET_SM_ISSUE_THROTTLE_CTRL_
         {
             smIssueThrottleCtrl->smIssueThrottleCtrl[i].smIssueThrottleCtrlListSize = throttle_ctrl_v2B_10->smIssueThrottleCtrl[i].smIssueThrottleCtrlListSize;
 
-            if (throttle_ctrl_v2B_10->smIssueThrottleCtrl[i].smIssueThrottleCtrlListSize >= NV2080_CTRL_GR_SM_ISSUE_THROTTLE_CTRL_MAX_LIST_SIZE_v2B_10)
+            if (throttle_ctrl_v2B_10->smIssueThrottleCtrl[i].smIssueThrottleCtrlListSize > NV2080_CTRL_GR_SM_ISSUE_THROTTLE_CTRL_MAX_LIST_SIZE_v2B_10)
             {
                 return NV_ERR_OUT_OF_RANGE;
             }

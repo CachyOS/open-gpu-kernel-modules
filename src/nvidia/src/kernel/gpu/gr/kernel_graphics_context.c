@@ -2619,7 +2619,8 @@ kgrctxShouldManageCtxBuffers_PHYSICAL
     NvU32 gfid
 )
 {
-    return !gpuIsClientRmAllocatedCtxBufferEnabled(pGpu) || (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid));
+    return !gpuIsClientRmAllocatedCtxBufferEnabled(pGpu) || (gpuIsSriovEnabled(pGpu) && IS_GFID_PF(gfid) &&
+                                                             !(IS_MIG_IN_USE(pGpu) && hypervisorIsType(OS_HYPERVISOR_VMWARE)));
 }
 
 /**

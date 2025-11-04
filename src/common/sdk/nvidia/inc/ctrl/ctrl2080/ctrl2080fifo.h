@@ -564,6 +564,31 @@ typedef struct NV2080_CTRL_FIFO_OBJSCHED_SW_GET_LOG_PARAMS {
 
 
 
+
+/*
+ * NV2080_CTRL_CMD_FIFO_CONFIG_CTXSW_TIMEOUT
+ *
+ * This command can be used to enable and set the engine
+ * context switch timeout
+ *
+ * timeout: Timeout in number of microsec PTIMER ticks
+ * 1 microsec PTIMER tick = 1024 PTIMER nanoseconds
+ * bEnable: TRUE/FALSE
+ *
+ * Possible status values returned are:
+ *   NV_OK
+ *   NV_ERR_INVALID_ARGUMENT
+*/
+
+#define NV2080_CTRL_CMD_FIFO_CONFIG_CTXSW_TIMEOUT (0x20801110) /* finn: Evaluated from "(FINN_NV20_SUBDEVICE_0_FIFO_INTERFACE_ID << 8) | NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS_MESSAGE_ID" */
+
+#define NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS_MESSAGE_ID (0x10U)
+
+typedef struct NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS {
+    NvU32  timeout;
+    NvBool bEnable;
+} NV2080_CTRL_FIFO_CONFIG_CTXSW_TIMEOUT_PARAMS;
+
 /*
  *  NV2080_CTRL_CMD_FIFO_GET_DEVICE_INFO_TABLE
  *

@@ -241,7 +241,7 @@ struct KernelDisplay {
     void (*__kdispApplyChannelConnectDisconnect__)(OBJGPU *, struct KernelDisplay * /*this*/, NvU32, NvU32, NvU32);  // halified (2 hals)
     NvBool (*__kdispIsChannelAllocatedHw__)(OBJGPU *, struct KernelDisplay * /*this*/, NvU32, NvU32);  // halified (2 hals)
 
-    // 8 PDB properties
+    // 9 PDB properties
 //  NvBool PDB_PROP_KDISP_IS_MISSING inherited from OBJENGSTATE
     NvBool PDB_PROP_KDISP_IMP_ALLOC_BW_IN_KERNEL_RM_DEF;
     NvBool PDB_PROP_KDISP_FEATURE_STRETCH_VBLANK_CAPABLE;
@@ -250,6 +250,7 @@ struct KernelDisplay {
     NvBool PDB_PROP_KDISP_INTERNAL_PANEL_DISCONNECTED;
     NvBool PDB_PROP_KDISP_ENABLE_INLINE_INTR_SERVICE;
     NvBool PDB_PROP_KDISP_AGGRESSIVE_VBLANK_HANDLING;
+    NvBool PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED;
 
     // Data members
     struct DisplayInstanceMemory *pInst;
@@ -275,6 +276,7 @@ struct KernelDisplay {
     KernelDisplayClientChannelMap *pClientChannelTable;
     NvBool bIsPanelReplayEnabled;
     void *pRgVblankCb;
+    NvBool bWindowChannelAlwaysMapped;
 };
 
 
@@ -347,6 +349,8 @@ extern const struct NVOC_CLASS_DEF __nvoc_class_def_KernelDisplay;
 #define PDB_PROP_KDISP_ENABLE_INLINE_INTR_SERVICE_BASE_NAME PDB_PROP_KDISP_ENABLE_INLINE_INTR_SERVICE
 #define PDB_PROP_KDISP_AGGRESSIVE_VBLANK_HANDLING_BASE_CAST
 #define PDB_PROP_KDISP_AGGRESSIVE_VBLANK_HANDLING_BASE_NAME PDB_PROP_KDISP_AGGRESSIVE_VBLANK_HANDLING
+#define PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED_BASE_CAST
+#define PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED_BASE_NAME PDB_PROP_KDISP_WINDOW_CHANNEL_ALWAYS_MAPPED
 
 
 NV_STATUS __nvoc_objCreateDynamic_KernelDisplay(KernelDisplay**, Dynamic*, NvU32, va_list);

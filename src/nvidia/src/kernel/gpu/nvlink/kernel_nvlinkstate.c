@@ -813,6 +813,11 @@ knvlinkStatePostLoad_IMPL
         return status;
     }
 
+    if (!GPU_IS_NVSWITCH_DETECTED(pGpu))
+    {
+        NV_ASSERT_OK_OR_RETURN(knvlinkSetDirectConnectBaseAddress_HAL(pGpu, pKernelNvlink));
+    }
+
     return NV_OK;
 }
 

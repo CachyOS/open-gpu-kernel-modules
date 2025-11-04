@@ -25,6 +25,7 @@
 #include "gpu/gpu.h"
 #include "os/os.h"
 #include "gpu/mem_mgr/mem_scrub.h"
+#include "gpu/mem_mgr/sysmem_scrub.h"
 #include "gpu/mem_mgr/mem_mgr.h"
 #include "gpu/mem_mgr/heap.h"
 #include "gpu/mem_mgr/mem_desc.h"
@@ -48,16 +49,23 @@ memmgrScrubHandlePostSchedulingEnable_GP100
     KernelMIGManager *pKernelMIGManager = GPU_GET_KERNEL_MIG_MANAGER(pGpu);
     NvBool bIsVgpuLegacyPolicy = (pKernelMIGManager != NULL) && kmigmgrUseLegacyVgpuPolicy(pGpu, pKernelMIGManager);
 
+    if (!memmgrIsScrubOnFreeEnabled(pMemoryManager))
+        return NV_OK;
+
     //
     // Disabling scrub on free for SLI, waiting on the bug:1915380
     // Bug: 2997744, skipping the top level scrubber since partitions are not created.
     //
     if (!IsSLIEnabled(pGpu) &&
-         memmgrIsScrubOnFreeEnabled(pMemoryManager) &&
          memmgrIsPmaInitialized(pMemoryManager) &&
          !(bIsMIGEnabled && IS_VIRTUAL(pGpu) && !bIsVgpuLegacyPolicy))
     {
         NV_ASSERT_OK_OR_RETURN(scrubberConstruct(pGpu, pHeap));
+    }
+
+    if (pMemoryManager->bSysmemCompressionSupportDef)
+    {
+        NV_ASSERT_OK_OR_RETURN(objCreate(&pMemoryManager->pSysmemScrubber, pMemoryManager, SysmemScrubber, pGpu));
     }
 
     return NV_OK;
@@ -79,6 +87,13 @@ memmgrScrubHandlePreSchedulingDisable_GP100
     NvBool            bIsMIGInUse         = IS_MIG_IN_USE(pGpu);
     KernelMIGManager *pKernelMIGManager   = GPU_GET_KERNEL_MIG_MANAGER(pGpu);
     NvBool            bIsVgpuLegacyPolicy = (pKernelMIGManager != NULL) && kmigmgrUseLegacyVgpuPolicy(pGpu, pKernelMIGManager);
+    SysmemScrubber   *pSysmemScrubber           = pMemoryManager->pSysmemScrubber;
+
+    if (!memmgrIsScrubOnFreeEnabled(pMemoryManager))
+        return NV_OK;
+
+    pMemoryManager->pSysmemScrubber = NULL;
+    objDelete(pSysmemScrubber);
 
     if (!pHeap)
         return NV_ERR_GENERIC;
@@ -92,7 +107,6 @@ memmgrScrubHandlePreSchedulingDisable_GP100
 
     // Bug: 2997744, skipping the top level scrubber since GPU instances are not created.
     if (!IsSLIEnabled(pGpu) &&
-         memmgrIsScrubOnFreeEnabled(pMemoryManager) &&
          memmgrIsPmaInitialized(pMemoryManager) &&
          !(bIsMIGEnabled && IS_VIRTUAL(pGpu) && !bIsVgpuLegacyPolicy))
     {

@@ -651,7 +651,7 @@ static void ReadAndApplyEdidEvo(
     if (pParams != NULL) {
         pParams->reply.edid.valid = readSuccess;
     }
-
+    
     if (EdidHasChanged(pDpyEvo, &edid, pParsedEdid)) {
         /*
          * Do not plumb pRequest into ApplyNewEdid().  This helps ensure that
@@ -666,18 +666,29 @@ static void ReadAndApplyEdidEvo(
     } else {
         nvFree(edid.buffer);
 
-        if (nvDpyIsHdmiEvo(pDpyEvo) &&
+        if (pDpyEvo->hotplugged) {
+            /*
+             * If the display has an unhandled hotplug, re-probe
+             * the maximum pixel clock. This can change even if the
+             * EDID remains the same if e.g. the display becomes FRL
+             * capable, a passive DP adapter is being used, etc. 
+             * Note that this also takes care of HDMI FRL link re-assessment
+             * on hotplugs.
+             */
+            nvDpyProbeMaxPixelClock(pDpyEvo);
+        } else if (nvDpyIsHdmiEvo(pDpyEvo) &&
             nvHdmiDpySupportsFrl(pDpyEvo) &&
             pDpyEvo->hdmi.reassessFrlLinkCaps) {
             /*
-             * Although there’s no change in EDID, if there was a HPD or
-             * re-training request, reassess the FRL Link.
+             * Although there’s no change in EDID and no hotplug, if there was 
+             * still a re-training request, reassess the FRL link.
              */
             nvHdmiFrlAssessLink(pDpyEvo);
         }
     }
 
     pDpyEvo->hdmi.reassessFrlLinkCaps = FALSE;
+    pDpyEvo->hotplugged = FALSE;
 
     nvFree(pParsedEdid);
 }
@@ -897,6 +908,29 @@ void nvDpyProbeMaxPixelClock(NVDpyEvoPtr pDpyEvo)
                      */
                     pDpyEvo->maxPixelClockKHz =
                         ((4 * 12 * 1000 * 1000 * 16) / 18);
+                }
+            } else {
+                const NVParsedEdidEvoRec *pParsedEdid = &pDpyEvo->parsedEdid;
+
+                if (pParsedEdid->valid) {
+                    const NVT_EDID_INFO *pEdidInfo = &pParsedEdid->info;
+                    /* Default Maximum HDMI TMDS character rate is 165MHz. */
+                    NvU32 maxTmdsCharRate = 33;
+
+                    if (pEdidInfo->ext861.valid.H20_HF_VSDB &&
+                        (pEdidInfo->hdmiForumInfo.max_TMDS_char_rate > 0)) {
+                        maxTmdsCharRate =
+                            NV_MIN(pEdidInfo->hdmiForumInfo.max_TMDS_char_rate, 120);
+                    } else if (pEdidInfo->ext861.valid.H14B_VSDB &&
+                               (pEdidInfo->hdmiLlcInfo.max_tmds_clock > 0)) {
+                        maxTmdsCharRate =
+                            NV_MIN(pEdidInfo->hdmiLlcInfo.max_tmds_clock, 68);
+                    }
+
+                    /* Max Pixel Rate = Max TMDS character Rate * 5MHz */
+                    pDpyEvo->maxPixelClockKHz =
+                        pDpyEvo->maxSingleLinkPixelClockKHz =
+                        maxTmdsCharRate * 5000;
                 }
             }
         } else {
