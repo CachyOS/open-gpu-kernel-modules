@@ -914,8 +914,7 @@ void nvDpyProbeMaxPixelClock(NVDpyEvoPtr pDpyEvo)
 
                 if (pParsedEdid->valid) {
                     const NVT_EDID_INFO *pEdidInfo = &pParsedEdid->info;
-                    /* Default Maximum HDMI TMDS character rate is 165MHz. */
-                    NvU32 maxTmdsCharRate = 33;
+                    NvU32 maxTmdsCharRate = 68;
 
                     if (pEdidInfo->ext861.valid.H20_HF_VSDB &&
                         (pEdidInfo->hdmiForumInfo.max_TMDS_char_rate > 0)) {
