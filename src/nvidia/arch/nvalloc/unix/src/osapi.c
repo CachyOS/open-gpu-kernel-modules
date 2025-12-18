@@ -1330,7 +1330,7 @@ RmDmabufVerifyMemHandle(
     }
 
     // Check if hMemory belongs to the same pGpu
-    if ((pMemDesc->pGpu != pGpu) &&
+    if ((pMemDesc->pGpu != pGpu) ||
         (pSrcMemory->pGpu != pGpu))
     {
         return NV_ERR_INVALID_OBJECT_PARENT;

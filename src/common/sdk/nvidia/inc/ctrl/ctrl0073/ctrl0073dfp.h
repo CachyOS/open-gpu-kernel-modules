@@ -813,6 +813,9 @@ typedef struct NV0073_CTRL_DFP_DSC_CRC_CONTROL_PARAMS {
  *   productId (in)
  *     Specifies the product ID of panel obtained from the EDID. This
  *     parameter is expected to be non-zero only in case of internal panel.
+ *   tconId (out)
+ *     RM provides an enumerated TCON specific value to help the client
+ *     identify the panel TCON. Clients can refer to the enum from sdk/nvidia/inc/dds_tcon_db.h
  *
  * Possible status values returned are:
  *   NV_OK
@@ -830,6 +833,7 @@ typedef struct NV0073_CTRL_CMD_DFP_INIT_MUX_DATA_PARAMS {
     NvU32 displayId;
     NvU16 manfId;
     NvU16 productId;
+    NvU16 tconId;
 } NV0073_CTRL_CMD_DFP_INIT_MUX_DATA_PARAMS;
 
 

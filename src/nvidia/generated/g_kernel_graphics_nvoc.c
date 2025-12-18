@@ -278,7 +278,7 @@ void __nvoc_init_dataField_KernelGraphics(KernelGraphics *pThis, GpuHalspecOwner
     pThis->bOverrideContextBuffersToGpuCached = NV_FALSE;
 
     // Hal field -- bPeFiroBufferEnabled
-    if (( ((chipHal_HalVarIdx >> 5) == 2UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x00000fe0UL) )) /* ChipHal: GB202 | GB203 | GB205 | GB206 | GB207 | GB20B | GB20C */ 
+    if (( ((chipHal_HalVarIdx >> 5) == 2UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x000003e0UL) )) /* ChipHal: GB202 | GB203 | GB205 | GB206 | GB207 */ 
     {
         pThis->bPeFiroBufferEnabled = NV_TRUE;
     }

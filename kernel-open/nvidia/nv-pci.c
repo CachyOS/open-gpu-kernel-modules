@@ -244,7 +244,11 @@ static int nv_resize_pcie_bars(struct pci_dev *pci_dev) {
 
 resize:
     /* Attempt to resize BAR1 to the largest supported size */
+#if defined(NV_PCI_RESIZE_RESOURCE_HAS_EXCLUDE_BARS_ARG)
+    r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size, 0);
+#else
     r = pci_resize_resource(pci_dev, NV_GPU_BAR1, requested_size);
+#endif
 
     if (r) {
         if (r == -ENOSPC)
@@ -1687,11 +1691,6 @@ nv_pci_probe
     nv_printf(NV_DBG_SETUP, "NVRM: probing 0x%x 0x%x, class 0x%x\n",
         pci_dev->vendor, pci_dev->device, pci_dev->class);
 
-    if (nv_kmem_cache_alloc_stack(&sp) != 0)
-    {
-        return -1;
-    }
-
 #ifdef NV_PCI_SRIOV_SUPPORT
     if (pci_dev->is_virtfn)
     {
@@ -1707,20 +1706,24 @@ nv_pci_probe
                       "since IOMMU is not present on the system.\n",
                        NV_PCI_DOMAIN_NUMBER(pci_dev), NV_PCI_BUS_NUMBER(pci_dev),
                        NV_PCI_SLOT_NUMBER(pci_dev), PCI_FUNC(pci_dev->devfn));
-            goto failed;
+            return -1;
         }
 
-        nv_kmem_cache_free_stack(sp);
         return 0;
 #else
         nv_printf(NV_DBG_ERRORS, "NVRM: Ignoring probe for VF %04x:%02x:%02x.%x ",
                   NV_PCI_DOMAIN_NUMBER(pci_dev), NV_PCI_BUS_NUMBER(pci_dev),
                   NV_PCI_SLOT_NUMBER(pci_dev), PCI_FUNC(pci_dev->devfn));
 
-        goto failed;
+        return -1;
 #endif /* NV_VGPU_KVM_BUILD */
     }
 #endif /* NV_PCI_SRIOV_SUPPORT */
+
+    if (nv_kmem_cache_alloc_stack(&sp) != 0)
+    {
+        return -1;
+    }
 
     if (!rm_wait_for_bar_firewall(
                 sp,
@@ -2178,7 +2181,7 @@ nv_pci_remove(struct pci_dev *pci_dev)
      * For eGPU, fall off the bus along with clients active is a valid scenario.
      * Hence skipping the sanity check for eGPU.
      */
-    if ((NV_ATOMIC_READ(nvl->usage_count) != 0) && !(nv->is_external_gpu))
+    if ((atomic64_read(&nvl->usage_count) != 0) && !(nv->is_external_gpu))
     {
         nv_printf(NV_DBG_ERRORS,
                   "NVRM: Attempting to remove device %04x:%02x:%02x.%x with non-zero usage count!\n",
@@ -2189,7 +2192,7 @@ nv_pci_remove(struct pci_dev *pci_dev)
          * We can't return from this function without corrupting state, so we wait for
          * the usage count to go to zero.
          */
-        while (NV_ATOMIC_READ(nvl->usage_count) != 0)
+        while (atomic64_read(&nvl->usage_count) != 0)
         {
 
             /*
@@ -2267,7 +2270,7 @@ nv_pci_remove(struct pci_dev *pci_dev)
         nvl->sysfs_config_file = NULL;
     }
 
-    if (NV_ATOMIC_READ(nvl->usage_count) == 0)
+    if (atomic64_read(&nvl->usage_count) == 0)
     {
         nv_lock_destroy_locks(sp, nv);
     }
@@ -2283,7 +2286,7 @@ nv_pci_remove(struct pci_dev *pci_dev)
 
     num_nv_devices--;
 
-    if (NV_ATOMIC_READ(nvl->usage_count) == 0)
+    if (atomic64_read(&nvl->usage_count) == 0)
     {
         NV_PCI_DISABLE_DEVICE(pci_dev);
         NV_KFREE(nvl, sizeof(nv_linux_state_t));

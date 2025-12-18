@@ -2114,6 +2114,35 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_GET_BACKLIGHT_DEVICE_BY_NAME_PRESENT" "" "functions"
         ;;
 
+        dma_map_ops_has_map_phys)
+            #
+            # Determine if .map_phys exists in struct dma_map_ops.
+            #
+            # Commit 14cb413af00c ("dma-mapping: remove unused mapping resource callbacks")
+            # removed .map_resource operation and replaced it with .map_phys.
+            #
+            echo "$CONFTEST_PREAMBLE
+            #include <linux/dma-map-ops.h>
+            int conftest_dma_map_ops_has_map_phys(void) {
+                return offsetof(struct dma_map_ops, map_phys);
+            }
+            int conftest_dma_map_ops_has_unmap_phys(void) {
+                return offsetof(struct dma_map_ops, unmap_phys);
+            }" > conftest$$.c
+
+            $CC $CFLAGS -c conftest$$.c > /dev/null 2>&1
+            rm -f conftest$$.c
+
+            if [ -f conftest$$.o ]; then
+                echo "#define NV_DMA_MAP_OPS_HAS_MAP_PHYS" | append_conftest "types"
+                rm -f conftest$$.o
+                return
+            else
+                echo "#undef NV_DMA_MAP_OPS_HAS_MAP_PHYS" | append_conftest "types"
+                return
+            fi
+        ;;
+
         dma_buf_ops_has_map)
             #
             # Determine if .map exists in dma_buf_ops.
@@ -3938,6 +3967,27 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_PCI_REBAR_GET_POSSIBLE_SIZES_PRESENT" "" "functions"
         ;;
 
+        pci_resize_resource_has_exclude_bars_arg)
+            #
+            # Determine if pci_resize_resource() has exclude_bars argument.
+            #
+            # exclude_bars argument was added to pci_resize_resource by commit
+            # 337b1b566db0 (11/14/2025) ("PCI: Fix restoring BARs on BAR resize rollback path")
+            # in linux-next.
+            #
+            CODE="
+            #include <linux/pci.h>
+
+            typeof(pci_resize_resource) conftest_pci_resize_resource_has_exclude_bars_arg;
+            int __must_check conftest_pci_resize_resource_has_exclude_bars_arg(struct pci_dev *dev,
+                                                                               int i, int size,
+                                                                               int exclude_bars) {
+                return 0;
+            }"
+
+            compile_check_conftest "$CODE" "NV_PCI_RESIZE_RESOURCE_HAS_EXCLUDE_BARS_ARG" "" "types"
+        ;;
+
         drm_connector_has_override_edid)
             #
             # Determine if 'struct drm_connector' has an 'override_edid' member.
@@ -3976,22 +4026,39 @@ compile_test() {
             compile_check_conftest "$CODE" "NV_IOMMU_SVA_BIND_DEVICE_HAS_DRVDATA_ARG" "" "types"
         ;;
 
-        vm_area_struct_has_const_vm_flags)
+        vm_flags_set)
             #
-            # Determine if the 'vm_area_struct' structure has
-            # const 'vm_flags'.
+            # Determine if the vm_flags_set() function is present. The
+            # presence of this function indicates that the vm_flags_clear()
+            # function is also present.
             #
-            # A union of '__vm_flags' and 'const vm_flags' was added by
+            # The functions vm_flags_set()/ vm_flags_clear() were added by
             # commit bc292ab00f6c ("mm: introduce vma->vm_flags wrapper
-            # functions") in v6.3.
+            # functions") in v6.3-rc1 (2023-02-09).
             #
             CODE="
-            #include <linux/mm_types.h>
-            int conftest_vm_area_struct_has_const_vm_flags(void) {
-                return offsetof(struct vm_area_struct, __vm_flags);
+            #include <linux/mm.h>
+            void conftest_vm_flags_set(void) {
+                vm_flags_set();
             }"
 
-            compile_check_conftest "$CODE" "NV_VM_AREA_STRUCT_HAS_CONST_VM_FLAGS" "" "types"
+            compile_check_conftest "$CODE" "NV_VM_FLAGS_SET_PRESENT" "" "functions"
+        ;;
+
+        vma_flags_set_word)
+            #
+            # Determine if the vma_flags_set_word() function is present.
+            #
+            # Added by commit c3f7c506e8f1 ("mm: introduce VMA flags bitmap type")
+            # in v6.19-rc1.
+            #
+            CODE="
+            #include <linux/mm.h>
+            void conftest_vma_flags_set_word(void) {
+                vma_flags_set_word();
+            }"
+
+            compile_check_conftest "$CODE" "NV_VMA_FLAGS_SET_WORD_PRESENT" "" "functions"
         ;;
 
         drm_driver_has_dumb_destroy)
