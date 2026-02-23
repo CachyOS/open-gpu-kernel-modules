@@ -7214,10 +7214,13 @@ static void EvoSetDpDscParams(const NVDispEvoRec *pDispEvo,
 
     nvAssert(pDscInfo->type == NV_DSC_INFO_EVO_TYPE_DP);
 
-    // XXX: I'm pretty sure that this is wrong.
-    // BitsPerPixelx16 is something like (24 * 16) = 384, and 2 << (384 - 8) is
-    // an insanely large number.
-    flatnessDetThresh = (2 << (pDscInfo->dp.bitsPerPixelX16 - 8)); /* ??? */
+    // Fix: use bits_per_component from PPS byte 3 [7:4], not bitsPerPixelX16.
+    // DSC spec: flatness_det_thresh = 2 << (bpc - 8).
+    // PPS DW[0] packs bytes [3][2][1][0] as [31:24][23:16][15:8][7:0].
+    {
+        NvU32 bpc = (pDscInfo->dp.pps[0] >> 28) & 0xF; // PPS byte 3 bits[7:4]
+        flatnessDetThresh = (bpc >= 8) ? (2 << (bpc - 8)) : 2;
+    }
 
     nvAssert((pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_DUAL) ||
                 (pDscInfo->dp.dscMode == NV_DSC_EVO_MODE_SINGLE));
