@@ -547,6 +547,19 @@ void Edid::applyEdidWorkArounds(NvU32 warFlag, const DpMonitorDenylistData *pDen
             }
             break;
 
+        // Bigscreen Beyond VR headset
+        case 0x2709:
+            if (ProductID == 0x1234)
+            {
+                //
+                // The Bigscreen Beyond connects via a link box (DP -> optical).
+                // Force 4 lanes HBR2 to ensure sufficient bandwidth.
+                //
+                this->WARFlags.forceMaxLinkConfig = true;
+                DP_PRINTF(DP_NOTICE, "DP-WAR> Force maximum link config for Bigscreen Beyond VR headset.");
+            }
+            break;
+
         // CMN
         case 0xAE0D:
             if (ProductID == 0x1747)
