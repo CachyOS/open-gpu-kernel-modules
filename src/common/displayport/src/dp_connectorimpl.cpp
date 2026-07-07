@@ -186,7 +186,7 @@ void ConnectorImpl::applyRegkeyOverrides(const DP_REGKEY_DATABASE& dpRegkeyDatab
               "All regkeys are invalid because dpRegkeyDatabase is not initialized!");
 
     this->bSkipAssessLinkForEDP = dpRegkeyDatabase.bAssesslinkForEdpSkipped;
-    this->bSkipPanelPowerWrite  = dpRegkeyDatabase.bSkipPanelPowerWrite; 
+    this->bSkipPanelPowerWrite  = dpRegkeyDatabase.bSkipPanelPowerWrite;
 
     //
     // Default bHdcpAuthOnlyOnDemand, bMstRestoreHdcpStateAtAttach are true
@@ -6068,6 +6068,16 @@ bool ConnectorImpl::trainLinkOptimized(LinkConfiguration lConfig)
                 };
             }
 
+            //
+            // If the link config is not valid (link train failed) or
+            // it failed to reach the highest assessed link config (link train fallback),
+            // then we need to force LT to the highest assessed link config.
+            //
+            if (!activeLinkConfig.isValid() || (highestAssessedLC != activeLinkConfig))
+            {
+                train(highestAssessedLC, true);
+            }
+
             lConfig = activeLinkConfig;
 
             if (bEnteredFlushMode)
@@ -7378,11 +7388,11 @@ void ConnectorImpl::notifyLongPulse(bool statusConnected)
             return;
         }
 
-		if (existingDev && bIgnoreUnplugUnlessRequested && !statusConnected && !existingDev->isMarkedForDeletion())
-		{
-			sink->notifyDetectComplete();
-			return;
-		}
+        if (existingDev && bIgnoreUnplugUnlessRequested && !statusConnected && !existingDev->isMarkedForDeletion())
+        {
+            sink->notifyDetectComplete();
+            return;
+        }
     }
 
     if (previousPlugged && statusConnected)
@@ -7758,7 +7768,16 @@ void ConnectorImpl::notifyLongPulseInternal(bool statusConnected)
             else
             {
                 dev.peerDevice = DownstreamSink;
-                if (hal->isAtLeastVersion(1, 4) && !bDisableNativeDisplayId2xSupport)
+                bool bIsDpToHdmiDongle = false;
+                if (hal->getLegacyPortCount() != 0)
+                {
+                    LegacyPort * port = hal->getLegacyPort(0);
+                    bIsDpToHdmiDongle = (port->getDownstreamPortType() == HDMI);
+                }
+
+                if (hal->isAtLeastVersion(1, 4) &&
+                    !bIsDpToHdmiDongle &&
+                    !bDisableNativeDisplayId2xSupport)
                 {
                     DisplayId2ReadSST(tmpDid2x, auxBus, timer, main);
                 }
@@ -7817,12 +7836,12 @@ void ConnectorImpl::notifyLongPulseInternal(bool statusConnected)
                 EvoInterface *provider = ((EvoMainLink *)main)->getProvider();
                 Buffer *edidBuf = tmpEdid.getBuffer();
                 NvU32 edidSize = tmpEdid.getEdidSize();
-                
+
                 if (edidBuf && edidSize > 0 && edidSize <= NV0073_CTRL_SPECIFIC_GET_EDID_MAX_EDID_BYTES)
                 {
-                    NV0073_CTRL_SPECIFIC_SET_EDID_V2_PARAMS *pEdidParams = 
+                    NV0073_CTRL_SPECIFIC_SET_EDID_V2_PARAMS *pEdidParams =
                         (NV0073_CTRL_SPECIFIC_SET_EDID_V2_PARAMS*)dpMalloc(sizeof(*pEdidParams));
-                    
+
                     if (pEdidParams)
                     {
                         dpMemZero(pEdidParams, sizeof(*pEdidParams));
@@ -7830,15 +7849,15 @@ void ConnectorImpl::notifyLongPulseInternal(bool statusConnected)
                         pEdidParams->displayId = provider->getDisplayId();
                         pEdidParams->bufferSize = edidSize;
                         dpMemCopy(pEdidParams->edidBuffer, edidBuf->data, edidSize);
-                        
-                        NvU32 status = provider->rmControl0073(NV0073_CTRL_CMD_SPECIFIC_SET_EDID_V2, 
+
+                        NvU32 status = provider->rmControl0073(NV0073_CTRL_CMD_SPECIFIC_SET_EDID_V2,
                                                                pEdidParams, sizeof(*pEdidParams));
                         if (status != NVOS_STATUS_SUCCESS)
                         {
                             DP_PRINTF(DP_ERROR, "DP-CONN> Failed to send EDID to RM for SST (Manuf: 0x%04X, Prod: 0x%04X, status: 0x%x)",
                                       tmpEdid.getManufId(), tmpEdid.getProductId(), status);
                         }
-                        
+
                         dpFree(pEdidParams);
                     }
                 }
@@ -8887,7 +8906,7 @@ bool ConnectorImpl::updatePsrLinkState(bool bTurnOnLink)
         {
             bSetPanelPower = false;
         }
-        
+
         if (bSetPanelPower)
         {
             hal->setPowerState(PowerStateD0);
