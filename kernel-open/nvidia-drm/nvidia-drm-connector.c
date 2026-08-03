@@ -500,7 +500,7 @@ static const NvU32 __nv_drm_connector_supported_colorspaces =
 #if defined(NV_DRM_CONNECTOR_ATTACH_HDR_OUTPUT_METADATA_PROPERTY_PRESENT)
 static int
 __nv_drm_connector_atomic_check(struct drm_connector *connector,
-                                struct drm_atomic_state *state)
+                                nv_drm_atomic_state_base_t *state)
 {
     struct drm_connector_state *new_connector_state =
         drm_atomic_get_new_connector_state(state, connector);

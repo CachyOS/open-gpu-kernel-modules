@@ -2804,7 +2804,9 @@ static NV_STATUS init_chunk_split_cache_level(uvm_pmm_gpu_t *pmm, size_t level)
             size_t size;
             size_t align;
             if (level == 0) {
-                strncpy(chunk_split_cache[level].name, "uvm_gpu_chunk_t", sizeof(chunk_split_cache[level].name) - 1);
+                snprintf(chunk_split_cache[level].name,
+                         sizeof(chunk_split_cache[level].name),
+                         "uvm_gpu_chunk_t");
                 size = sizeof(uvm_gpu_chunk_t);
                 align = __alignof__(uvm_gpu_chunk_t);
             } else {

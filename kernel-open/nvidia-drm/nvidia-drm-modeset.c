@@ -50,21 +50,23 @@
 
 struct nv_drm_atomic_state {
     struct NvKmsKapiRequestedModeSetConfig config;
-    struct drm_atomic_state base;
+    nv_drm_atomic_state_base_t base;
 };
 
 static inline struct nv_drm_atomic_state *to_nv_atomic_state(
-    struct drm_atomic_state *state)
+    nv_drm_atomic_state_base_t *state)
 {
     return container_of(state, struct nv_drm_atomic_state, base);
 }
 
-struct drm_atomic_state *nv_drm_atomic_state_alloc(struct drm_device *dev)
+nv_drm_atomic_state_base_t *
+nv_drm_atomic_state_alloc(struct drm_device *dev)
 {
     struct nv_drm_atomic_state *nv_state =
             nv_drm_calloc(1, sizeof(*nv_state));
 
-    if (nv_state == NULL || drm_atomic_state_init(dev, &nv_state->base) < 0) {
+    if (nv_state == NULL ||
+        nv_drm_atomic_state_base_init(dev, &nv_state->base) < 0) {
         nv_drm_free(nv_state);
         return NULL;
     }
@@ -72,16 +74,16 @@ struct drm_atomic_state *nv_drm_atomic_state_alloc(struct drm_device *dev)
     return &nv_state->base;
 }
 
-void nv_drm_atomic_state_clear(struct drm_atomic_state *state)
+void nv_drm_atomic_state_clear(nv_drm_atomic_state_base_t *state)
 {
-    drm_atomic_state_default_clear(state);
+    nv_drm_atomic_state_base_default_clear(state);
 }
 
-void nv_drm_atomic_state_free(struct drm_atomic_state *state)
+void nv_drm_atomic_state_free(nv_drm_atomic_state_base_t *state)
 {
     struct nv_drm_atomic_state *nv_state =
                     to_nv_atomic_state(state);
-    drm_atomic_state_default_release(state);
+    nv_drm_atomic_state_base_default_release(state);
     nv_drm_free(nv_state);
 }
 
@@ -178,7 +180,7 @@ __nv_drm_plane_fence_cb(
 
 static int __nv_drm_convert_in_fences(
     struct nv_drm_device *nv_dev,
-    struct drm_atomic_state *state,
+    nv_drm_atomic_state_base_t *state,
     struct drm_crtc *crtc,
     struct drm_crtc_state *crtc_state)
 {
@@ -392,7 +394,7 @@ static int __nv_drm_get_syncpt_data(
  */
 static int
 nv_drm_atomic_apply_modeset_config(struct drm_device *dev,
-                                   struct drm_atomic_state *state,
+                                   nv_drm_atomic_state_base_t *state,
                                    bool commit)
 {
     struct nv_drm_device *nv_dev = to_nv_device(dev);
@@ -527,7 +529,7 @@ nv_drm_atomic_apply_modeset_config(struct drm_device *dev,
 }
 
 int nv_drm_atomic_check(struct drm_device *dev,
-                        struct drm_atomic_state *state)
+                        nv_drm_atomic_state_base_t *state)
 {
     int ret = 0;
 
@@ -688,7 +690,7 @@ static void __nv_drm_handle_flip_event(struct nv_drm_crtc *nv_crtc)
 }
 
 int nv_drm_atomic_commit(struct drm_device *dev,
-                         struct drm_atomic_state *state,
+                         nv_drm_atomic_state_base_t *state,
                          bool nonblock)
 {
     int ret = -EBUSY;

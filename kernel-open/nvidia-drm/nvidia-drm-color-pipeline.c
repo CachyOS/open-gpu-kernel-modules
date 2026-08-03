@@ -289,7 +289,7 @@ failed:
 static int plane_update_state_from_colorops(struct drm_plane *plane,
                                             struct drm_plane_state *plane_state)
 {
-    struct drm_atomic_state *state = plane_state->state;
+    nv_drm_atomic_state_base_t *state = plane_state->state;
     struct nv_drm_plane_state *nv_plane_state = to_nv_drm_plane_state(plane_state);
     struct nv_drm_colorop *nv_colorop;
     struct nv_drm_color_pipeline *pipeline;

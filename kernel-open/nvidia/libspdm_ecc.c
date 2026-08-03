@@ -335,7 +335,8 @@ static bool lkca_ecdsa_verify_akcipher(void *ec_context, size_t hash_nid,
     }
 
     req = akcipher_request_alloc(tfm, GFP_KERNEL);
-    if (IS_ERR(req)) {
+    if (IS_ERR_OR_NULL(req)) {
+        err = IS_ERR(req) ? PTR_ERR(req) : -ENOMEM;
         pr_info("akcipher_request_alloc failed in lkca_ecdsa_verify\n");
         goto failTfm;
     }
@@ -343,6 +344,7 @@ static bool lkca_ecdsa_verify_akcipher(void *ec_context, size_t hash_nid,
     // We concatenate signature and hash and ship it to kernel
     ber = kmalloc(ber_max_len + hash_size, GFP_KERNEL);
     if (ber == NULL) {
+        err = -ENOMEM;
         goto failReq;
     }
 

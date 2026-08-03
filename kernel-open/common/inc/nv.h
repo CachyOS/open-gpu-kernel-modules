@@ -660,6 +660,8 @@ struct nv_file_private_t
     nv_file_private_t * PORT_ATOMIC ctl_nvfp;
     void *ctl_nvfp_priv;
     PORT_ATOMIC NvU32 register_or_refcount;
+    // In-flight nv_post_event() calls using this file private.
+    PORT_ATOMIC NvS32 event_posting_refcount;
 
     //
     // True if a client or an event was ever allocated on this fd.
@@ -667,6 +669,11 @@ struct nv_file_private_t
     //
     NvBool bCleanupRmapi;
 };
+
+static inline NvS32 nv_event_posting_refcount_read(nv_file_private_t *nvfp)
+{
+    return *((volatile NvS32 *)&nvfp->event_posting_refcount);
+}
 
 // Forward define the gpu ops structures
 typedef struct gpuSession                           *nvgpuSessionHandle_t;
@@ -969,9 +976,9 @@ void      NV_API_CALL   nv_unregister_sgt        (nv_state_t *, struct sg_table 
 NV_STATUS NV_API_CALL   nv_register_phys_pages   (nv_state_t *, NvU64 *, NvU64, NvU32, void **);
 void      NV_API_CALL   nv_unregister_phys_pages (nv_state_t *, void *);
 
-NV_STATUS  NV_API_CALL  nv_dma_map_sgt           (nv_dma_device_t *, NvU64, NvU64 *, NvU32, void **);
+NV_STATUS  NV_API_CALL  nv_dma_map_sgt           (nv_dma_device_t *, NvU64, NvU64 *, NvU32, NvBool, void **);
 
-NV_STATUS  NV_API_CALL  nv_dma_map_alloc         (nv_dma_device_t *, NvU64, NvU64 *, NvBool, void **);
+NV_STATUS  NV_API_CALL  nv_dma_map_alloc         (nv_dma_device_t *, NvU64, NvU64 *, NvBool, NvBool, void **);
 NV_STATUS  NV_API_CALL  nv_dma_unmap_alloc       (nv_dma_device_t *, NvU64, NvU64 *, void **);
 
 NV_STATUS  NV_API_CALL  nv_dma_map_peer          (nv_dma_device_t *, nv_dma_device_t *, NvU8, NvU64, NvU64 *);

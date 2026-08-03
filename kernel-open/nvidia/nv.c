@@ -1088,6 +1088,10 @@ static void nv_free_file_private(nv_linux_file_private_t *nvlfp)
     if (nvlfp == NULL)
         return;
 
+    // Event teardown can race in-flight posts that still use nvfp.
+    while (READ_ONCE(nvlfp->nvfp.event_posting_refcount) != 0)
+        cond_resched();
+
     for (nvet = nvlfp->event_data_head; nvet != NULL; nvet = nvlfp->event_data_head)
     {
         nvlfp->event_data_head = nvlfp->event_data_head->next;
@@ -2396,10 +2400,8 @@ out:
     return rc;
 }
 
-static NV_STATUS nv_validate_ioctls(unsigned int cmd)
+static NV_STATUS nv_validate_ioctl_data(unsigned int arg_cmd, size_t arg_size)
 {
-    size_t arg_size = _IOC_SIZE(cmd);
-    int arg_cmd = _IOC_NR(cmd);
     int i;
     NV_STATUS status;
     static const struct {
@@ -2423,7 +2425,7 @@ static NV_STATUS nv_validate_ioctls(unsigned int cmd)
         _NV_IOCTL_ENTRY(NV_ESC_SET_NUMA_STATUS, nv_ioctl_set_numa_status_t, NV_FALSE),
     };
 
-    status = rm_validate_ioctls(cmd, arg_size);
+    status = rm_validate_ioctls(arg_cmd, arg_size);
     if (status != NV_ERR_INVALID_COMMAND) 
     {
         return status;
@@ -2450,6 +2452,11 @@ static NV_STATUS nv_validate_ioctls(unsigned int cmd)
     nv_printf(NV_DBG_ERRORS, "NVRM:unknown NVRM ioctl command: 0x%x\n", arg_cmd);
 
     return NV_ERR_INVALID_ARGUMENT;
+}
+
+static NV_STATUS nv_validate_ioctls(unsigned int cmd)
+{
+    return nv_validate_ioctl_data(_IOC_NR(cmd), _IOC_SIZE(cmd));
 }
 
 int
@@ -2506,6 +2513,12 @@ nvidia_ioctl(
         if (arg_size > NV_ABSOLUTE_MAX_IOCTL_SIZE)
         {
             nv_printf(NV_DBG_ERRORS, "NVRM: invalid ioctl XFER size!\n");
+            status = -EINVAL;
+            goto done_early;
+        }
+
+        if (nv_validate_ioctl_data(arg_cmd, arg_size) != NV_OK)
+        {
             status = -EINVAL;
             goto done_early;
         }
@@ -6309,6 +6322,9 @@ void NV_API_CALL nv_get_screen_info(
     NvU64       *pFbSize
 )
 {
+#if NV_CHECK_EXPORT_SYMBOL(screen_info) || NV_CHECK_EXPORT_SYMBOL(sysfb_primary_display)
+    struct screen_info *sysfb_info;
+#endif
     nv_linux_state_t *nvl = NV_GET_NVL_FROM_NV_STATE(nv);
     struct pci_dev *pci_dev = nvl->pci_dev;
     int i;
@@ -6374,9 +6390,18 @@ void NV_API_CALL nv_get_screen_info(
      *
      * After commit b8466fe82b79 ("efi: move screen_info into efi init code")
      * in v6.7, 'screen_info' is exported as GPL licensed symbol for ARM64.
+     *
+     * After commit a41e0ab394e4 ("sysfb: Replace screen_info with sysfb_primary_display")
+     * in v7.0, 'screen_info' is refactored as 'sysfb_primary_display.screen'.
      */
 
-#if NV_CHECK_EXPORT_SYMBOL(screen_info)
+#if NV_CHECK_EXPORT_SYMBOL(screen_info) || NV_CHECK_EXPORT_SYMBOL(sysfb_primary_display)
+#if NV_CHECK_EXPORT_SYMBOL(sysfb_primary_display)
+    sysfb_info = &sysfb_primary_display.screen;
+#else
+    sysfb_info = &screen_info;
+#endif
+
     /*
      * If there is not a framebuffer console, return 0 size.
      *
@@ -6384,13 +6409,13 @@ void NV_API_CALL nv_get_screen_info(
      * initialization, and then will be set to a value, such as
      * VIDEO_TYPE_VLFB or VIDEO_TYPE_EFI if an fbdev console is used.
      */
-    if (screen_info.orig_video_isVGA > 1)
+    if (sysfb_info->orig_video_isVGA > 1)
     {
-        NvU64 physAddr = screen_info.lfb_base;
+        NvU64 physAddr = sysfb_info->lfb_base;
 #if defined(VIDEO_CAPABILITY_64BIT_BASE)
-        if  (screen_info.capabilities & VIDEO_CAPABILITY_64BIT_BASE)
+        if  (sysfb_info->capabilities & VIDEO_CAPABILITY_64BIT_BASE)
         {
-            physAddr |= (NvU64)screen_info.ext_lfb_base << 32;
+            physAddr |= (NvU64)sysfb_info->ext_lfb_base << 32;
         }
 #endif
         /*
@@ -6402,10 +6427,10 @@ void NV_API_CALL nv_get_screen_info(
             NV_IS_CONSOLE_MAPPED(nv, physAddr))
         {
             *pPhysicalAddress = physAddr;
-            *pFbWidth = screen_info.lfb_width;
-            *pFbHeight = screen_info.lfb_height;
-            *pFbDepth = screen_info.lfb_depth;
-            *pFbPitch = screen_info.lfb_linelength;
+            *pFbWidth = sysfb_info->lfb_width;
+            *pFbHeight = sysfb_info->lfb_height;
+            *pFbDepth = sysfb_info->lfb_depth;
+            *pFbPitch = sysfb_info->lfb_linelength;
             *pFbSize = (NvU64)(*pFbHeight) * (NvU64)(*pFbPitch);
             return;
         }

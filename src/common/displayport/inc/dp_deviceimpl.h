@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 1993-2021 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 1993-2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: MIT
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -548,6 +548,32 @@ namespace DisplayPort
             bool                     tryRemote1XCaps;
             bool                     bBKSVReadMessagePending;
             bool                     bBCapsReadMessagePending;
+            bool                     bDestroying;
+            unsigned                 callbackDepth;
+
+            class CallbackGuard
+            {
+                    DeviceHDCPDetection *owner;
+                    CallbackGuard(const CallbackGuard &) = delete;
+                    CallbackGuard &operator=(const CallbackGuard &) = delete;
+
+                public:
+                    CallbackGuard(DeviceHDCPDetection *owner)
+                        : owner(owner)
+                    {
+                        owner->beginCallback();
+                    }
+
+                    ~CallbackGuard()
+                    {
+                        owner->endCallback();
+                    }
+            };
+
+            void beginCallback(void);
+            void endCallback(void);
+            void requestDestroy(void);
+            void destroyNow(void);
 
         public:
 
@@ -556,8 +582,9 @@ namespace DisplayPort
                   isBCapsHDCP(false), retriesRemoteBKSVReadMessage(0), retriesRemoteBCapsReadMessage(0),
                   retriesRemote22BCapsReadMessage(0), retryRemoteBKSVReadMessage(false),
                   retryRemoteBCapsReadMessage(false), retryRemote22BCapsReadMessage(false),
+                  tryRemote1XCaps(false),
                   bBKSVReadMessagePending(false), bBCapsReadMessagePending(false)
-
+                  ,bDestroying(false), callbackDepth(0)
             {
                 this->parent = parent;
                 this->messageManager = messageManager;
@@ -565,6 +592,7 @@ namespace DisplayPort
             }
 
             ~DeviceHDCPDetection();
+            void destroy(void);
             void expired(const void * tag);
             void start();
             void waivePendingHDCPCapDoneNotification();

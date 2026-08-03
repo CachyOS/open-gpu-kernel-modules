@@ -3299,6 +3299,22 @@ kmigmgrPrintGPUInstanceInfo_IMPL
                                               RM_ENGINE_TYPE_GR(0));
     NvU32 ceCount = kmigmgrCountEnginesInRange(&pKernelMIGGpuInstance->resourceAllocation.engines,
                                                kmigmgrGetAsyncCERange_HAL(pGpu, pKernelMIGManager));
+
+    // update CE count to what is actually mapped versus total CEs available
+    KernelCE *pKCe = NULL;
+    NvU32 unused;
+    NvU32 ceMappedCount;
+
+    kceFindFirstInstance(pGpu, &pKCe);
+    if (pKCe != NULL)
+    {
+        kceGetPceConfigForLceMIGGpuInstance(pGpu, pKCe, 0, ceCount, &unused, &ceMappedCount, &unused, &unused);
+        if (ceMappedCount != 0)
+        {
+            ceCount = ceMappedCount;
+        }
+    }
+
     NvU32 decCount = kmigmgrCountEnginesOfType(&pKernelMIGGpuInstance->resourceAllocation.engines,
                                                RM_ENGINE_TYPE_NVDEC(0));
     NvU32 encCount = kmigmgrCountEnginesOfType(&pKernelMIGGpuInstance->resourceAllocation.engines,
@@ -5933,11 +5949,14 @@ kmigmgrConfigureGPUInstance_IMPL
 
     //
     // Return an error if there are any channels on any engines targeted by this
-    // request
+    // request. Skip this check for GSP fast unload codepath, since we may have channels on engines
+    // but with no active workloads.
     //
-    NV_CHECK_OR_RETURN(LEVEL_SILENT,
-                       !kfifoEngineListHasChannel(pGpu, pKernelFifo, checkGrs, checkGrCount),
-                       NV_ERR_STATE_IN_USE);
+    {
+        NV_CHECK_OR_RETURN(LEVEL_SILENT,
+                        !kfifoEngineListHasChannel(pGpu, pKernelFifo, checkGrs, checkGrCount),
+                        NV_ERR_STATE_IN_USE);
+    }
 
     if (!bAssigning)
     {
@@ -6223,6 +6242,12 @@ kmigmgrInvalidateGPUInstance_IMPL
         // _gpumgrUnregisterRmCapsForSmcPartitions during driver unload.
         //
         osRmCapUnregister(&pKernelMIGGpuInstance->pOsRmCaps);
+    }
+
+    if (!IS_VIRTUAL(pGpu))
+    {
+        // Clear CE Mappings on this MIG GPU Instance
+        kmigmgrClearMIGGpuInstanceCeMapping_HAL(pGpu, pKernelMIGManager, pKernelMIGGpuInstance);
     }
 
     // Remove GR->GPC mappings in GPU instance Info
@@ -6941,6 +6966,12 @@ kmigmgrCreateGPUInstance_IMPL
         // Init gpu instance pool for page table mem
         NV_CHECK_OK_OR_GOTO(rmStatus, LEVEL_ERROR,
             kmigmgrInitGPUInstancePool(pGpu, pKernelMIGManager, pKernelMIGGpuInstance), invalidate);
+
+        if (!IS_VIRTUAL(pGpu))
+        {
+            // Apply CE Mappings on this partition
+            kmigmgrApplyMIGGpuInstanceCeMapping_HAL(pGpu, pKernelMIGManager, pKernelMIGGpuInstance);
+        }
 
         // Init gpu instance scrubber
         NV_CHECK_OK_OR_GOTO(rmStatus, LEVEL_ERROR,

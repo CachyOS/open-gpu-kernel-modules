@@ -138,6 +138,8 @@ static void RmCreateOsDescriptor(NVOS32_PARAMETERS *pApi, API_SECURITY_INFO secI
     NvU32 flags = 0;
     NvU64 allocSize, pageCount, *pPteArray = NULL;
     void *pDescriptor, *pPageArray = NULL;
+    NVOS32_PARAMETERS allocApi = *pApi;
+    NVOS32_PARAMETERS *pAllocApi = &allocApi;
 
     pDescriptor = NvP64_VALUE(pApi->data.AllocOsDesc.descriptor);
     if (((NvUPtr)pDescriptor & ~os_page_mask) != 0)
@@ -162,26 +164,30 @@ static void RmCreateOsDescriptor(NVOS32_PARAMETERS *pApi, API_SECURITY_INFO secI
     rmStatus = os_lock_user_pages(pDescriptor, pageCount, &pPageArray, flags);
     if (rmStatus == NV_OK)
     {
-        pApi->data.AllocOsDesc.descriptor = (NvP64)(NvUPtr)pPageArray;
-        pApi->data.AllocOsDesc.descriptorType = NVOS32_DESCRIPTOR_TYPE_OS_PAGE_ARRAY;
+        pAllocApi->data.AllocOsDesc.descriptor = (NvP64)(NvUPtr)pPageArray;
+        pAllocApi->data.AllocOsDesc.descriptorType = NVOS32_DESCRIPTOR_TYPE_OS_PAGE_ARRAY;
     }
     else if (rmStatus == NV_ERR_INVALID_ADDRESS)
     {
         rmStatus = os_lookup_user_io_memory(pDescriptor, pageCount, &pPteArray);
         if (rmStatus == NV_OK)
         {
-            pApi->data.AllocOsDesc.descriptor = (NvP64)(NvUPtr)pPteArray;
-            pApi->data.AllocOsDesc.descriptorType = NVOS32_DESCRIPTOR_TYPE_OS_IO_MEMORY;
+            pAllocApi->data.AllocOsDesc.descriptor = (NvP64)(NvUPtr)pPteArray;
+            pAllocApi->data.AllocOsDesc.descriptorType = NVOS32_DESCRIPTOR_TYPE_OS_IO_MEMORY;
         }
     }
     if (rmStatus != NV_OK)
         goto done;
 
-    Nv04VidHeapControlWithSecInfo(pApi, secInfo);
+    Nv04VidHeapControlWithSecInfo(pAllocApi, secInfo);
 
-    if (pApi->status != NV_OK)
+    pApi->status = pAllocApi->status;
+    pApi->data.AllocOsDesc.hMemory = pAllocApi->data.AllocOsDesc.hMemory;
+
+    if ((pAllocApi->status != NV_OK) &&
+        (pAllocApi->data.AllocOsDesc.descriptor != NvP64_NULL))
     {
-        switch (pApi->data.AllocOsDesc.descriptorType)
+        switch (pAllocApi->data.AllocOsDesc.descriptorType)
         {
             default:
                 break;

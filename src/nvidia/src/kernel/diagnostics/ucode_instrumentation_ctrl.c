@@ -38,6 +38,24 @@
 #include "core/system.h"
 #include "kernel/vgpu/rpc.h"
 #include "diagnostics/instrumentation_manager.h"
+#include "virtualization/common_vgpu_mgr.h"
+
+static NV_STATUS
+_diagapiCtrlCmdUcodeInstrumentationValidateGfid
+(
+    NvU32 ucode,
+    NvU32 gfid
+)
+{
+    if (ucode == NV208F_UCODE_INSTRUMENTATION_GSP_TASK_VGPU)
+    {
+        NV_CHECK_OR_RETURN(LEVEL_ERROR,
+                           gfid > 0 && gfid <= VGPU_MAX_GFID,
+                           NV_ERR_INVALID_ARGUMENT);
+    }
+
+    return NV_OK;
+}
 
 NV_STATUS
 diagapiCtrlCmdUcodeInstrumentationGetState_IMPL
@@ -53,6 +71,9 @@ diagapiCtrlCmdUcodeInstrumentationGetState_IMPL
     {
         return NV_ERR_NOT_SUPPORTED;
     }
+
+    NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
+        _diagapiCtrlCmdUcodeInstrumentationValidateGfid(pParams->ucode, pParams->gfid));
 
     internalParams.ucode = pParams->ucode;
     internalParams.gfid = pParams->gfid;
@@ -90,6 +111,9 @@ diagapiCtrlCmdUcodeInstrumentationSetState_IMPL
     {
         return NV_ERR_NOT_SUPPORTED;
     }
+
+    NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
+        _diagapiCtrlCmdUcodeInstrumentationValidateGfid(pParams->ucode, pParams->gfid));
 
     internalParams.ucode = pParams->ucode;
     internalParams.gfid = pParams->gfid;
@@ -132,6 +156,9 @@ diagapiCtrlCmdUcodeInstrumentationGetData_IMPL
         return NV_ERR_NOT_SUPPORTED;
     }
 
+    NV_CHECK_OK_OR_RETURN(LEVEL_ERROR,
+        _diagapiCtrlCmdUcodeInstrumentationValidateGfid(pParams->ucode, pParams->gfid));
+
     pInternalParams = portMemAllocNonPaged(sizeof(*pInternalParams));
     if (pInternalParams == NULL)
     {
@@ -169,6 +196,13 @@ diagapiCtrlCmdUcodeInstrumentationGetData_IMPL
         {
             OBJSYS *pSys = SYS_GET_INSTANCE();
             NvU8 *pBuffer;
+
+            if ((pParams->offset > BULLSEYE_GSP_RM_COVERAGE_SIZE) ||
+                (pParams->dataSize > (BULLSEYE_GSP_RM_COVERAGE_SIZE - pParams->offset)))
+            {
+                portMemFree(pInternalParams);
+                return NV_ERR_INVALID_ARGUMENT;
+            }
 
             // Merge this chunk of data into the instrumentation buffer
             instrumentationmanagerMerge(pSys->pInstrumentationManager,

@@ -304,8 +304,10 @@ static NV_STATUS map_user_pages(NvU64 user_va, NvU64 size, void **addr, struct p
     }
 
     *addr = vmap(*pages, num_pages, VM_MAP, PAGE_KERNEL);
-    if (*addr == NULL)
+    if (*addr == NULL) {
+        status = NV_ERR_NO_MEMORY;
         goto fail;
+    }
 
     return NV_OK;
 
@@ -2497,6 +2499,13 @@ static NV_STATUS tools_access_process_memory(uvm_va_space_t *va_space,
 
         // Make sure a CPU resident page has an up to date struct page pointer.
         if (uvm_va_block_is_hmm(block)) {
+            // Verify the target address is writable. This isn't needed for
+            // managed ranges since those are always RW. If the target is a
+            // CoW mapping that will be broken below in the residency update.
+            if (is_write && !(block_context->hmm.vma->vm_flags & VM_WRITE)) {
+                status = NV_ERR_INSUFFICIENT_PERMISSIONS;
+                goto unlock_and_exit;
+            }
             status = uvm_hmm_va_block_update_residency_info_unlocked(block, mm, UVM_PAGE_ALIGN_DOWN(target_va_start), true);
             if (status != NV_OK)
                 goto unlock_and_exit;

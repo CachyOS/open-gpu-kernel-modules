@@ -218,9 +218,9 @@ found:
     ret = length;
 
     if (write)
-        memcpy(kernel_mapping, buffer, length);
+        os_mem_copy(kernel_mapping, buffer, length);
     else
-        memcpy(buffer, kernel_mapping, length);
+        os_mem_copy(buffer, kernel_mapping, length);
 
     if (at == NULL && !has_pages)
     {

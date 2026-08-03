@@ -237,6 +237,7 @@ NV_STATUS embeddedParamCopyIn(RMAPI_PARAM_COPY *paramCopies, RmCtrlParams *pRmCt
                             ((NV2080_CTRL_GPU_GET_NVENC_SW_SESSION_INFO_PARAMS*)pParams)->sessionInfoTblEntry,
                             sizeof(NV2080_CTRL_NVENC_SW_SESSION_INFO));
             paramCopies[0].flags |= RMAPI_PARAM_COPY_FLAGS_SKIP_COPYIN;
+            paramCopies[0].flags |= RMAPI_PARAM_COPY_FLAGS_ZERO_BUFFER;
 
             break;
         }

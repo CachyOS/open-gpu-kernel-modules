@@ -449,6 +449,14 @@ gisubscriptionCtrlCmdExecPartitionsCreate_IMPL
 
         // Only continue if execution partition creation succeeded in the host
         NV_ASSERT_OK_OR_RETURN(status);
+
+        // Validate execPartId values returned by RPC before using as array indices
+        for (i = 0; i < pParams->execPartCount; i++)
+        {
+            NV_CHECK_OR_RETURN(LEVEL_ERROR,
+                pParams->execPartId[i] < KMIGMGR_MAX_COMPUTE_INSTANCES,
+                NV_ERR_INVALID_DATA);
+        }
     }
 
     if (!IS_GSP_CLIENT(pGpu))

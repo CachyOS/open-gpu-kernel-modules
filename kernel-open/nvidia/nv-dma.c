@@ -53,6 +53,14 @@ void        nv_unmap_dma_map_scatterlist  (nv_dma_map_t *dma_map);
 static void nv_dma_unmap_contig           (nv_dma_map_t *dma_map);
 static void nv_dma_unmap_scatterlist      (nv_dma_map_t *dma_map);
 
+static enum dma_data_direction nv_dma_get_direction
+(
+    nv_dma_map_t *dma_map
+)
+{
+    return dma_map->bReadOnlyDeviceMap ? DMA_TO_DEVICE : DMA_BIDIRECTIONAL;
+}
+
 static inline NvBool nv_dma_is_addressable(
     nv_dma_device_t *dma_dev,
     NvU64 start,
@@ -72,9 +80,11 @@ static NV_STATUS nv_dma_map_contig(
     NvU64 *va
 )
 {
+    enum dma_data_direction direction = nv_dma_get_direction(dma_map);
+
     *va = dma_map_page_attrs(dma_map->dev, dma_map->pages[0], 0,
                              dma_map->page_count * PAGE_SIZE,
-                             DMA_BIDIRECTIONAL,
+                             direction,
                              (dma_map->cache_type == NV_MEMORY_UNCACHED) ?
                               DMA_ATTR_SKIP_CPU_SYNC : 0);
     if (dma_mapping_error(dma_map->dev, *va))
@@ -101,9 +111,11 @@ static NV_STATUS nv_dma_map_contig(
 
 static void nv_dma_unmap_contig(nv_dma_map_t *dma_map)
 {
+    enum dma_data_direction direction = nv_dma_get_direction(dma_map);
+
     dma_unmap_page_attrs(dma_map->dev, dma_map->mapping.contig.dma_addr,
                          dma_map->page_count * PAGE_SIZE,
-                         DMA_BIDIRECTIONAL,
+                         direction,
                          (dma_map->cache_type == NV_MEMORY_UNCACHED) ?
                           DMA_ATTR_SKIP_CPU_SYNC : 0);
 }
@@ -224,6 +236,7 @@ NV_STATUS nv_map_dma_map_scatterlist(nv_dma_map_t *dma_map)
     NV_STATUS status = NV_OK;
     nv_dma_submap_t *submap;
     NvU64 i;
+    enum dma_data_direction direction = nv_dma_get_direction(dma_map);
 
     NV_FOR_EACH_DMA_SUBMAP(dma_map, submap, i)
     {
@@ -233,7 +246,7 @@ NV_STATUS nv_map_dma_map_scatterlist(nv_dma_map_t *dma_map)
             dma_map_sg(dma_map->dev,
                        submap->sgt.sgl,
                        submap->sgt.orig_nents,
-                       DMA_BIDIRECTIONAL);
+                       direction);
         if (submap->sg_map_count == 0)
         {
             status = NV_ERR_OPERATING_SYSTEM;
@@ -253,6 +266,7 @@ void nv_unmap_dma_map_scatterlist(nv_dma_map_t *dma_map)
 {
     nv_dma_submap_t *submap;
     NvU64 i;
+    enum dma_data_direction direction = nv_dma_get_direction(dma_map);
 
     NV_FOR_EACH_DMA_SUBMAP(dma_map, submap, i)
     {
@@ -269,7 +283,7 @@ void nv_unmap_dma_map_scatterlist(nv_dma_map_t *dma_map)
 
         dma_unmap_sg(dma_map->dev, submap->sgt.sgl,
                 submap->sgt.orig_nents,
-                DMA_BIDIRECTIONAL);
+                direction);
     }
 }
 
@@ -376,6 +390,7 @@ NV_STATUS NV_API_CALL nv_dma_map_sgt(
     NvU64            page_count,
     NvU64           *va_array,
     NvU32            cache_type,
+    NvBool           bReadOnlyDeviceMap,
     void           **priv
 )
 {
@@ -408,6 +423,7 @@ NV_STATUS NV_API_CALL nv_dma_map_sgt(
     dma_map->page_count = page_count;
     dma_map->contiguous = NV_FALSE;
     dma_map->cache_type = cache_type;
+    dma_map->bReadOnlyDeviceMap = bReadOnlyDeviceMap;
 
     dma_map->mapping.discontig.submap_count = 0;
     status = nv_dma_map_scatterlist(dma_dev, dma_map, va_array);
@@ -453,6 +469,7 @@ static NV_STATUS NV_API_CALL nv_dma_map_pages(
     NvU64           *va_array,
     NvBool           contig,
     NvU32            cache_type,
+    NvBool           bReadOnlyDeviceMap,
     void           **priv
 )
 {
@@ -489,6 +506,7 @@ static NV_STATUS NV_API_CALL nv_dma_map_pages(
     dma_map->page_count = page_count;
     dma_map->contiguous = contig;
     dma_map->cache_type = cache_type;
+    dma_map->bReadOnlyDeviceMap = bReadOnlyDeviceMap;
 
     if (dma_map->page_count > 1 && !dma_map->contiguous)
     {
@@ -579,6 +597,7 @@ NV_STATUS NV_API_CALL nv_dma_map_alloc
     NvU64            page_count,
     NvU64           *va_array,
     NvBool           contig,
+    NvBool           bReadOnlyDeviceMap,
     void           **priv
 )
 {
@@ -594,7 +613,7 @@ NV_STATUS NV_API_CALL nv_dma_map_alloc
     {
         *priv = at->import_sgt;
         status = nv_dma_map_sgt(dma_dev, page_count, va_array, at->cache_type,
-                                priv);
+                                bReadOnlyDeviceMap, priv);
         if (status != NV_OK)
         {
             *priv = at;
@@ -653,7 +672,7 @@ NV_STATUS NV_API_CALL nv_dma_map_alloc
 
     *priv = pages;
     status = nv_dma_map_pages(dma_dev, page_count, va_array, contig, cache_type,
-                              priv);
+                              bReadOnlyDeviceMap, priv);
     if (status != NV_OK)
     {
         *priv = at;

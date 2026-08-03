@@ -145,6 +145,8 @@ CliNotifyVgpuConfigEvent
     KernelVgpuMgr               *pKernelVgpuMgr = SYS_GET_KERNEL_VGPUMGR(pSys);
     NvU32                        pgpuIndex;
 
+    NV_CHECK_OR_RETURN_VOID(LEVEL_INFO, notifyIndex < NVA081_NOTIFIERS_MAXCOUNT);
+
     // Get pgpuIndex, for which we need to notify events
     if (kvgpumgrGetPgpuIndex(pKernelVgpuMgr, pGpu->gpuId, &pgpuIndex) != NV_OK)
         return;

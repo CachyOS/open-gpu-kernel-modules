@@ -2831,13 +2831,9 @@ NV_STATUS kvgpumgrGetAvailableInstances(
         {
             if (IS_MIG_IN_USE(pGpu))
             {
-                NvU64 swizzIdInUseMask = 0;
-                NvU32 partitionFlag = PARTITIONID_INVALID;
-                KernelMIGManager *pKernelMIGManager = GPU_GET_KERNEL_MIG_MANAGER(pGpu);
-                NvU32 id;
-                VGPU_TYPE *existingVgpuTypeInfo = NULL;
-
-                swizzIdInUseMask = kmigmgrGetSwizzIdInUseMask(pGpu, pKernelMIGManager);
+                NvU32 numCreatableVgpuTypes = 0;
+                NvU32 creatableVgpuTypes[NVA081_MAX_VGPU_TYPES_PER_PGPU];
+                NvU32 idx;
 
                 if (!vgpuTypeInfo->gpuInstanceSize)
                 {
@@ -2847,78 +2843,43 @@ NV_STATUS kvgpumgrGetAvailableInstances(
                     goto exit;
                 }
 
-                rmStatus = kvgpumgrGetPartitionFlag(vgpuTypeInfo->vgpuTypeId,
-                                                    &partitionFlag);
+                rmStatus = kvgpumgrGetCreatableVgpuTypes(pGpu, pKernelVgpuMgr, pgpuIndex,
+                                                        KMIGMGR_SWIZZID_INVALID,
+                                                        &numCreatableVgpuTypes,
+                                                        creatableVgpuTypes);
                 if (rmStatus != NV_OK)
                 {
-                    // Query for a non MIG vgpuType
-                    NV_PRINTF(LEVEL_ERROR, "Failed to get partition flags.\n");
+                    NV_PRINTF(LEVEL_INFO, "Failed to get creatable vGPU types.\n");
                     goto exit;
                 }
-    
-                // Determine valid swizzids not assigned to any vGPU device.
-                FOR_EACH_INDEX_IN_MASK(64, id, swizzIdInUseMask)
+
+                for (idx = 0; idx < numCreatableVgpuTypes; idx++)
                 {
-                    KERNEL_MIG_GPU_INSTANCE *pKernelMIGGpuInstance;
-
-                    rmStatus = kmigmgrGetGPUInstanceInfo(pGpu, pKernelMIGManager,
-                                                         id, &pKernelMIGGpuInstance);
-                    if (rmStatus != NV_OK)
+                    if (creatableVgpuTypes[idx] == vgpuTypeInfo->vgpuTypeId)
                     {
-                        // Didn't find requested GPU instance
-                        NV_PRINTF(LEVEL_ERROR,
-                                  "No valid GPU instance with SwizzId - %d found\n", id);
-                        goto exit;
-                    }
-
-                    if (pKernelMIGGpuInstance->partitionFlag == partitionFlag)
-                    {
-                        if (pKernelVgpuMgr->pgpuInfo[pgpuIndex].assignedSwizzIdVgpuCount[id] > 0)
-                        {
-                            NvU32 vgpuTypeId;
-
-                            if (_kvgpumgrGetCreatedVgpuOnGpuInstance(pGpu, id, &vgpuTypeId) == NV_OK)
-                            {
-                                NV_ASSERT_OK_OR_RETURN(kvgpumgrGetVgpuTypeInfo(vgpuTypeId, &existingVgpuTypeInfo));
-                                if (kvgpumgrIsHeterogeneousVgpuTypeSupported() == NV_TRUE)
-                                {
-                                    if (existingVgpuTypeInfo->profileSize != vgpuTypeInfo->profileSize)
-                                        continue;
-                                }
-                                else
-                                {
-                                    if (existingVgpuTypeInfo->vgpuTypeId != vgpuTypeInfo->vgpuTypeId)
-                                         continue;
-                                }
-                            }
-                        }
-                       // Validate that same ID is not already set and VF is availablei
-                       if (pKernelVgpuMgr->pgpuInfo[pgpuIndex].assignedSwizzIdVgpuCount[id] < vgpuTypeInfo->maxInstancePerGI)
-                        {
-                            *availInstances = 1;
-                            break;
-                        }
+                        *availInstances = 1;
+                        break;
                     }
                 }
-                FOR_EACH_INDEX_IN_MASK_END;
             }
         }
         else
         {
-            if (pKernelVgpuMgr->pgpuInfo[pgpuIndex].numCreatedVgpu < vgpuTypeInfo->maxInstance)
+            if (!pGpu->getProperty(pGpu, PDB_PROP_GPU_IS_VGPU_HETEROGENEOUS_MODE))
             {
-                if (vgpuTypeInfo->gpuInstanceSize)
+                if (pKernelVgpuMgr->pgpuInfo[pgpuIndex].numCreatedVgpu < vgpuTypeInfo->maxInstance)
                 {
-                    // Query for a MIG vgpuType
-                    NV_PRINTF(LEVEL_INFO, "Query for a MIG vGPU type\n");
-                    rmStatus = NV_OK;
-                    goto exit;
+                    if (vgpuTypeInfo->gpuInstanceSize)
+                    {
+                        rmStatus = NV_OK;
+                        goto exit;
+                    }
                 }
+            }
 
-                if (kvgpumgrCheckVgpuTypeCreatable(pGpu, &pKernelVgpuMgr->pgpuInfo[pgpuIndex],
+            if (kvgpumgrCheckVgpuTypeCreatable(pGpu, &pKernelVgpuMgr->pgpuInfo[pgpuIndex],
                                                     vgpuTypeInfo) == NV_OK)
                     *availInstances = 1;
-            }
         }
     }
     else

@@ -29,6 +29,46 @@
 #include "published/blackwell/gb202/dev_xtl_ep_pri.h"
 
 /*!
+ * @brief Safety net for updating completion timeout value
+ *
+ * @param[in]  pGpu       GPU object pointer
+ * @param[in]  pKernelBif Kernel BIF object pointer
+ */
+void
+kbifUpdateCplToWar5656465_GB202
+(
+    OBJGPU    *pGpu,
+    KernelBif *pKernelBif
+)
+{
+    NvU32 regVal = 0;
+    NvU32 rangeC = 0x9;
+
+    if (gpuIsGeforceBranded(pGpu))
+    {
+        return;
+    }
+
+    if (GPU_BUS_CFG_CYCLE_RD32(pGpu, NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2, &regVal) != NV_OK)
+    {
+        NV_PRINTF(LEVEL_ERROR, "Unable to read NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2\n");
+        return;
+    }
+
+    if (FLD_TEST_DRF(_EP_PCFG_GPU, _DEVICE_CONTROL_STATUS_2, _CPL_TIMEOUT_VALUES, _DEFAULT, regVal))
+    {
+        regVal = FLD_SET_DRF_NUM(_EP_PCFG_GPU, _DEVICE_CONTROL_STATUS_2, _CPL_TIMEOUT_VALUES, rangeC, regVal);
+
+        if (GPU_BUS_CFG_CYCLE_WR32(pGpu, NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2, regVal) != NV_OK)
+        {
+            NV_PRINTF(LEVEL_ERROR,
+                      "Unable to write NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2\n");
+            return;
+        }
+    }
+}
+
+/*!
  * @brief Save PCIe Config space for Fn1
  *
  * @param[in]  pGpu       GPU object pointer

@@ -370,7 +370,7 @@ _memmgrAllocFbsrReservedRanges
                                                      sizeof(compbitStoreInfoParams)),
                                      fail);
 
-                size += compbitStoreInfoParams.Size;
+                size += compbitStoreInfoParams.cbcRegionSize;
             }
 
             // Allocate the System memory

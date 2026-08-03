@@ -2923,7 +2923,7 @@ static NV_STATUS add_gpu(const NvProcessorUuid *gpu_uuid,
         goto error;
 
     if (alloc_parent) {
-        if (enable_devmem && !gpu->mem_info.numa.enabled && !gpu->parent->is_integrated_gpu) {
+        if (enable_devmem && uvm_gpu_supports_devmem(gpu)) {
             status = uvm_devmem_init(parent_gpu);
             if (status != NV_OK) {
                 UVM_ERR_PRINT("failed to intialize device private memory: %s, GPU %s\n",
@@ -2938,7 +2938,7 @@ static NV_STATUS add_gpu(const NvProcessorUuid *gpu_uuid,
 #if UVM_IS_CONFIG_HMM()
     // HMM was disabled when first initialising the parent so we can't support
     // it now. Tell the caller to retry with it disabled.
-    else if (!parent_gpu->devmem && enable_devmem && !gpu->mem_info.numa.enabled && !gpu->parent->is_integrated_gpu) {
+    else if (!parent_gpu->devmem && enable_devmem && uvm_gpu_supports_devmem(gpu)) {
         status = NV_ERR_BUSY_RETRY;
         goto error;
     }
@@ -3094,6 +3094,19 @@ static NV_STATUS gpu_retain_by_uuid_locked(const NvProcessorUuid *gpu_uuid,
         if (status != NV_OK)
             goto error_unregister;
     }
+#if UVM_IS_CONFIG_HMM()
+    // The GPU object already exists but was first brought up by a VA space with
+    // HMM disabled, so it has no devmem and can't service this HMM request.
+    // add_gpu(), which performs the same check, is not reached on this path, so
+    // repeat it here. Tell the caller to retry with HMM disabled. Nothing was
+    // retained, so there is nothing to undo.
+    // NUMA and integrated GPUs don't supoport ZONE_DEVICE memory so we don't
+    // need devmem to be initialised on those.
+    else if (!parent_gpu->devmem && enable_devmem && uvm_gpu_supports_devmem(gpu)) {
+        status = NV_ERR_BUSY_RETRY;
+        goto error_unregister;
+    }
+#endif
     else {
         atomic64_inc(&gpu->retained_count);
     }

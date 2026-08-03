@@ -2305,11 +2305,11 @@ static NV_STATUS subdeviceCtrlCmdEventSetTrigger__EXPORT(void *pSubdevice) {
 }
 #endif // !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00000008u)
 
-#if !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00000009u)
+#if !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00000109u)
 static NV_STATUS subdeviceCtrlCmdEventSetTriggerFifo__EXPORT(void *pSubdevice, void *pTriggerFifoParams) {
     return subdeviceCtrlCmdEventSetTriggerFifo_IMPL(pSubdevice, pTriggerFifoParams);
 }
-#endif // !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00000009u)
+#endif // !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00000109u)
 
 #if !NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x00010118u)
 static NV_STATUS subdeviceCtrlCmdEventSetNotification__EXPORT(void *pSubdevice, void *pSetEventParams) {
@@ -5609,12 +5609,12 @@ static const struct NVOC_EXPORTED_METHOD_DEF __nvoc_exported_method_def_Subdevic
 #endif
     },
     {               /*  [108] */
-#if NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x9u)
+#if NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x109u)
         /*pFunc=*/      (void (*)(void)) NULL,
 #else
         /*pFunc=*/      (void (*)(void)) &subdeviceCtrlCmdEventSetTriggerFifo__EXPORT,
-#endif // NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x9u)
-        /*flags=*/      0x9u,
+#endif // NVOC_EXPORTED_METHOD_DISABLED_BY_FLAG(0x109u)
+        /*flags=*/      0x109u,
         /*accessRight=*/0x0u,
         /*methodId=*/   0x20800308u,
         /*paramSize=*/  sizeof(NV2080_CTRL_EVENT_SET_TRIGGER_FIFO_PARAMS),

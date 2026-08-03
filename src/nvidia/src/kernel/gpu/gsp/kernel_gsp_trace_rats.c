@@ -27,6 +27,7 @@
  */
 
 #include "gpu/gsp/kernel_gsp_trace_rats.h"
+#include "nvport/nvport.h"
 
 #include "rmapi/client.h"
 #include "rmapi/event_api.h"
@@ -40,6 +41,8 @@
 #include "vgpu/rpc.h"
 #include "gpu/mem_mgr/mem_mgr.h"
 #include "gpu/timer/objtmr.h"
+
+#define GSP_TRACE_BUFFER_ALLOC_SIZE_MAX (1 * 1024 * 1024)   // 1 MB
 
 static
 NV_STATUS
@@ -259,7 +262,17 @@ gspTraceAddBindpoint
 
     if (IS_VIRTUAL(pGpu))
     {
-        NvU32 allocBufferSize = gspTracingBufferSize * sizeof(NV_RATS_GSP_TRACE_RECORD) + sizeof(NV_RATS_VGPU_GSP_TRACING_BUFFER);
+        NvU32 allocBufferSize;
+        NvU32 mulResult;
+
+        NV_CHECK_OR_RETURN(LEVEL_ERROR,
+                           portSafeMulU32(gspTracingBufferSize, (NvU32)sizeof(NV_RATS_GSP_TRACE_RECORD), &mulResult),
+                           NV_ERR_INVALID_ARGUMENT);
+        NV_CHECK_OR_RETURN(LEVEL_ERROR,
+                           portSafeAddU32(mulResult, (NvU32)sizeof(NV_RATS_VGPU_GSP_TRACING_BUFFER), &allocBufferSize),
+                           NV_ERR_INVALID_ARGUMENT);
+        NV_CHECK_OR_RETURN(LEVEL_ERROR, allocBufferSize <= GSP_TRACE_BUFFER_ALLOC_SIZE_MAX,
+                           NV_ERR_INVALID_ARGUMENT);
         NV_ASSERT_OK_OR_GOTO(status,
             memdescCreate(&(pBind->pMemDesc),
                           pGpu,

@@ -91,6 +91,8 @@ typedef struct
 #define NVLINK_INBAND_GPU_PROBE_CAPS_GPU_PROBE_REQUEST_ACTION   NVBIT(7)
 #define NVLINK_INBAND_GPU_PROBE_CAPS_MC_RETRY                   NVBIT(8)
 #define NVLINK_INBAND_GPU_PROBE_CAPS_PROBE_UPDATE_V2            NVBIT(9)
+/* Bits 10-12 reserved */
+#define NVLINK_INBAND_GPU_PROBE_CAPS_ADAPTIVE_BANDWIDTH_AND_LINK_RETRAIN_FIX NVBIT(13)
 
 /* Add more caps as need in the future */
 

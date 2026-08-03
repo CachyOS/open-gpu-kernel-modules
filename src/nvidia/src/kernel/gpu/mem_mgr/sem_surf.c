@@ -1727,6 +1727,11 @@ semsurfCtrlCmdRegisterWaiter_IMPL
                                  notificationHandle,
                                  bKernel);
 
+    if (rmStatus != NV_OK && !bKernel && notificationHandle != 0)
+    {
+        osDereferenceObjectCount(NvP64_VALUE(notificationHandle));
+    }
+
     return rmStatus;
 }
 
@@ -1876,6 +1881,11 @@ semsurfCtrlCmdUnregisterWaiter_IMPL
                                  pParams->waitValue,
                                  notificationHandle,
                                  bKernel);
+
+    if (!bKernel && notificationHandle != 0)
+    {
+        osDereferenceObjectCount(NvP64_VALUE(notificationHandle));
+    }
 
     return rmStatus;
 }

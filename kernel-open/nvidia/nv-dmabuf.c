@@ -617,7 +617,7 @@ nv_dma_buf_get_phys_addresses (
     nvidia_stack_t *sp = NULL;
     NvBool api_lock_taken = NV_FALSE;
     NvBool gpu_lock_taken = NV_FALSE;
-    NvU32 i;
+    NvU32 i = 0;
     int rc = 0;
 
     if (!nv_inc_and_check_one_phys_refcount(priv, start_index, handle_count))
@@ -693,6 +693,11 @@ nv_dma_buf_get_phys_addresses (
     return NV_OK;
 
 unmap_handles:
+    //
+    // Restore pre-call refcounts so nv_put_phys_addresses() can unmap handles
+    // that were first mapped by this call.
+    //
+    (void) nv_dec_and_check_zero_phys_refcount(priv, start_index, i);
     nv_put_phys_addresses(sp, priv, start_index, i);
 
     if (gpu_lock_taken)
@@ -710,7 +715,8 @@ free_sp:
     nv_kmem_cache_free_stack(sp);
 
 failed:
-    nv_reset_phys_refcount(priv, start_index, handle_count);
+    (void) nv_dec_and_check_zero_phys_refcount(priv, start_index + i,
+                                              handle_count - i);
 
     return status;
 }

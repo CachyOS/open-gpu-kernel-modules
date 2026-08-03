@@ -63,6 +63,7 @@ extern char *NVreg_TemporaryFilePath;
 extern char *NVreg_ExcludedGpus;
 
 static char nv_registry_keys[NV_MAX_REGISTRY_KEYS_LENGTH];
+static struct semaphore nv_registry_keys_lock;
 
 #if defined(CONFIG_PM)
 nv_pm_action_depth_t nv_procfs_pm_action_depth = NV_PM_ACTION_DEPTH_DEFAULT;
@@ -397,16 +398,28 @@ nv_procfs_close_registry(
 
         registry_keys = ((nvl != NULL) ?
                 nvl->registry_keys : nv_registry_keys);
-        if (strstr(registry_keys, key_name) != NULL)
-            goto done;
-        len = strlen(registry_keys);
+        if (nvl != NULL)
+            down(&nvl->ldata_lock);
+        else
+            down(&nv_registry_keys_lock);
 
-        if ((len + key_len + 2) <= NV_MAX_REGISTRY_KEYS_LENGTH)
+        // Keep the duplicate check, length check, and append atomic.
+        if (strstr(registry_keys, key_name) == NULL)
         {
-            if (len != 0)
-                strcat(registry_keys, ", ");
-            strcat(registry_keys, key_name);
+            len = strlen(registry_keys);
+
+            if ((len + key_len + 2) <= NV_MAX_REGISTRY_KEYS_LENGTH)
+            {
+                if (len != 0)
+                    strcat(registry_keys, ", ");
+                strcat(registry_keys, key_name);
+            }
         }
+
+        if (nvl != NULL)
+            up(&nvl->ldata_lock);
+        else
+            up(&nv_registry_keys_lock);
     }
 
 done:
@@ -467,7 +480,18 @@ nv_procfs_read_registry(
     registry_keys = ((nvl != NULL) ?
             nvl->registry_keys : nv_registry_keys);
 
+    if (nvl != NULL)
+        down(&nvl->ldata_lock);
+    else
+        down(&nv_registry_keys_lock);
+
     seq_printf(s, "Binary: \"%s\"\n", registry_keys);
+
+    if (nvl != NULL)
+        up(&nvl->ldata_lock);
+    else
+        up(&nv_registry_keys_lock);
+
     return 0;
 }
 
@@ -1328,6 +1352,8 @@ int nv_procfs_init(void)
     snprintf(nv_dir_name, sizeof(nv_dir_name), "driver/%s", nv_device_name);
 
     nv_dir_name[sizeof(nv_dir_name) - 1] = '\0';
+
+    NV_INIT_MUTEX(&nv_registry_keys_lock);
 
     proc_nvidia = NV_CREATE_PROC_DIR(nv_dir_name, NULL);
 

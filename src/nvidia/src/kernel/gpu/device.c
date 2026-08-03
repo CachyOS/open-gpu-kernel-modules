@@ -54,6 +54,8 @@
 
 static NV_STATUS _deviceTeardown(Device *pDevice, CALL_CONTEXT *pCallContext);
 static NV_STATUS _deviceTeardownRef(Device *pDevice, CALL_CONTEXT *pCallContext);
+static NV_STATUS _deviceValidateClientShare(Device *pDevice, CALL_CONTEXT *pCallContext,
+                                            NvHandle hClientShare);
 static NV_STATUS _deviceInit(Device *pDevice, CALL_CONTEXT *pCallContext,
                              NvHandle hClient, NvHandle hDevice, NvU32 deviceInst,
                              NvHandle hClientShare, NvHandle hTargetClient, NvHandle hTargetDevice,
@@ -192,6 +194,38 @@ deviceConstruct_IMPL
 
     return rmStatus;
 } // end of deviceConstruct_IMPL
+
+static NV_STATUS
+_deviceValidateClientShare
+(
+    Device       *pDevice,
+    CALL_CONTEXT *pCallContext,
+    NvHandle      hClientShare
+)
+{
+    OBJGPU *pGpu = GPU_RES_GET_GPU(pDevice);
+    RsClient *pClientShare = NULL;
+    NV_STATUS status;
+
+    if ((hClientShare == NV01_NULL_OBJECT) ||
+        (hClientShare == pCallContext->pClient->hClient))
+    {
+        return NV_OK;
+    }
+
+    if (IS_VIRTUAL_WITH_SRIOV(pGpu) &&
+        gpuIsSplitVasManagementServerClientRmEnabled(pGpu) &&
+        (hClientShare == pGpu->hDefaultClientShare))
+    {
+        return NV_OK;
+    }
+
+    status = serverGetClientUnderLock(&g_resServ, hClientShare, &pClientShare);
+    if (status != NV_OK)
+        return status;
+
+    return clientValidate(pClientShare, &pCallContext->secInfo);
+}
 
 void
 deviceDestruct_IMPL
@@ -409,6 +443,10 @@ _deviceInit
             hClientShare = pGpu->hDefaultClientShare;
         }
     }
+
+    status = _deviceValidateClientShare(pDevice, pCallContext, hClientShare);
+    if (status != NV_OK)
+        goto done;
 
     status = deviceSetClientShare(pDevice, hClientShare, vaSize,
                                   vaStartInternal, vaLimitInternal, allocFlags);

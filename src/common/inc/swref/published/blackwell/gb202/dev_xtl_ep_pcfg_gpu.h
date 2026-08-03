@@ -46,6 +46,11 @@
 #define NV_EP_PCFG_GPU_DEVICE_CAPABILITIES_2_CAS_COMPLETER_128BIT_SUPPORTED                                    0x00000001           /* R---V */
 #define NV_EP_PCFG_GPU_DEVICE_CAPABILITIES_2_CAS_COMPLETER_128BIT_OVERRIDEABLE                                 1                    /*       */
 #define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2                                                                 0x00000088           /* RW-4R */
+#define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_CPL_TIMEOUT_VALUES                                              3:0                  /* RWIVF */
+#define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_CPL_TIMEOUT_VALUES_DEFAULT                                      0x00000000           /* RWI-V */
+#define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_CPL_TIMEOUT_DISABLE                                             4:4                  /* RWIVF */
+#define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_CPL_TIMEOUT_DISABLE_ENABLED                                     0x00000000           /* RWI-V */
+#define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_CPL_TIMEOUT_DISABLE_DISABLED                                    0x00000001           /* RW--V */
 #define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_LTR_ENABLE                                                      10:10                /* RWIVF */
 #define NV_EP_PCFG_GPU_DEVICE_CONTROL_STATUS_2_LTR_ENABLE_DEFAULT                                              0x00000000           /* RWI-V */
 #define NV_EP_PCFG_GPU_CTRL_CMD_AND_STATUS                                                                     0x00000004           /* RW-4R */

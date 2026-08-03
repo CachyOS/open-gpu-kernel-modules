@@ -118,6 +118,21 @@ nvencsessionConstruct_IMPL
             pNvencSession->pMemory = NULL;
             return status;
         }
+
+        // Free the session before the stats Memory so pMemory remains valid while unmapping.
+        status = refAddDependant(RES_GET_REF(pNvencSession->pMemory),
+                                 RES_GET_REF(pNvencSession));
+        if (status != NV_OK)
+        {
+            memdescUnmap(pNvencSession->pMemory->pMemDesc,
+                         NV_TRUE,
+                         pNvencSession->pSessionStatsBuffer,
+                         pNvencSession->pPriv);
+            pNvencSession->pMemory             = NULL;
+            pNvencSession->pSessionStatsBuffer = NvP64_NULL;
+            pNvencSession->pPriv               = NvP64_NULL;
+            return status;
+        }
     }
     else
     {
@@ -199,6 +214,8 @@ nvencsessionDestruct_IMPL
                      NV_TRUE,
                      pNvencSession->pSessionStatsBuffer,
                      pNvencSession->pPriv);
+        refRemoveDependant(RES_GET_REF(pNvencSession->pMemory),
+                           RES_GET_REF(pNvencSession));
     }
 
     if (IS_VIRTUAL(pGpu))

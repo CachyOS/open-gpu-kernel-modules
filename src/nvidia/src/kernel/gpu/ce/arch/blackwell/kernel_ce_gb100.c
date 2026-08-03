@@ -235,6 +235,13 @@ kceGetMappingsForMIGGpuInstance_GB100
     NvU32 i;
     NVLINK_TOPOLOGY_PARAMS *pTopoParams;
 
+    if ((lceAvailableMask & shimLceMask) == 0x0)
+    {
+        // No LCEs to map on this shim instance
+        NV_PRINTF(LEVEL_INFO, "No LCEs available to map\n");
+        return NV_OK;
+    }
+
     //
     // Initialize the pceAvailableMask to include all PCEs.
     // Iterate over all HSHUBs in both shims to generate a mask of PCEs available.
@@ -312,6 +319,8 @@ kceGetMappingsForMIGGpuInstance_GB100
                 pcesLocalAvailable = pcesLocalAvailable & ~NVBIT32(pceIdx);
                 pcesForEvenLces    = pcesForEvenLces & ~NVBIT32(pceIdx);
                 pLocalPceLceMap[pceIdx] = lceIdx % NV_KCE_GROUP_ID_STRIDE;
+                NV_PRINTF(LEVEL_INFO, "GPU%d Mapping PCE %d to LCE %d\n",
+                          gpuGetInstance(pGpu), pceIdx, lceIdx);
             }
         }
         numLcesMapped++;
@@ -353,6 +362,8 @@ kceGetMappingsForMIGGpuInstance_GB100
                 pLocalPceLceMap[pceIdx] = lceIdx % NV_KCE_GROUP_ID_STRIDE; //shim consideration
                 numPcesMapped++;
 
+                NV_PRINTF(LEVEL_INFO, "GPU%d Mapping PCE %d to LCE %d\n",
+                          gpuGetInstance(pGpu), pceIdx, lceIdx);
                 // Due to FS limitations regardless of min PCE request, only assign half the PCEs
                 if (numPcesMapped >= (numMinPcesPerLce / 2))
                 {

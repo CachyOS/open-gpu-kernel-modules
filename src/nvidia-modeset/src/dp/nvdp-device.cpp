@@ -124,7 +124,10 @@ void nvDPGetDpyGUID(NVDpyEvoPtr pDpyEvo)
 
     str = nvkmsDisplayPort::nvDPGetDeviceGUIDStr(pDpLibDevice->device);
     if (str != NULL) {
-        nvkms_strncpy(pDpyEvo->dp.guid.str, str, sizeof(pDpyEvo->dp.guid.str));
+        nvkms_snprintf(pDpyEvo->dp.guid.str,
+                       sizeof(pDpyEvo->dp.guid.str),
+                       "%s",
+                       str);
     } else {
         pDpyEvo->dp.guid.valid = FALSE;
     }

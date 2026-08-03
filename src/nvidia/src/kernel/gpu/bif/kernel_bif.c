@@ -162,6 +162,9 @@ kbifStateLoad_IMPL
 {
     NV_PRINTF(LEVEL_INFO, "BIF DMA Caps: %08x\n", kbifGetDmaCaps(pGpu, pKernelBif));
 
+    // Apply CPL TO value safety net
+    kbifUpdateCplToWar5656465_HAL(pGpu, pKernelBif);
+
     // Apply C73 chipset WAR
     kbifExecC73War_HAL(pGpu, pKernelBif);
 

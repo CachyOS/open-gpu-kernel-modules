@@ -219,6 +219,7 @@ static NV_STATUS _dmaGetMaxVAPageSize
     // RM will look to make sure that:
     // 1. The page size aligned down vaAddr does not underflow the VA surface.
     // 2. The physical size of the allocation, when aligned up to the page size does not overflow the end of the VA surface.
+    // 3. The provided GPU VA is aligned to chosen page size, or GPU VA is aligned to page size after phys offset adjustment.
     //
     // Passing both checks ensures that the VA surface is compatible for mapping the surface
     // at the selected (and smaller) page size(s).
@@ -232,7 +233,8 @@ static NV_STATUS _dmaGetMaxVAPageSize
         if ((alignedVA >= targetSpaceBase) &&
             (NV_ALIGN_UP64(alignedVA + physOffset + physSize, pageSize) - 1) <= targetSpaceLimit &&
             (NV_ALIGN_UP64(physOffset + physSize, pageSize)) <= memDescribedSize &&
-            ((physStartAddr - physOffset) >= memDescribedStartAddr))
+            ((physStartAddr - physOffset) >= memDescribedStartAddr) &&
+            ((vaAddr - alignedVA) == 0 || (vaAddr - alignedVA) == physOffset))
         {
             vaMaxPageSize = pageSize;
             bFoundPageSize = NV_TRUE;

@@ -128,6 +128,7 @@ kmigmgrApplyMIGGpuInstanceCeMapping_GH100
         NvU32         *pLocalPceLceMap = NULL;
         NvU32          lceAvailableMask = 0;
         NvU32          i;
+        NV_STATUS      status          = NV_OK;
         RM_ENGINE_TYPE ceEngineType;
         ENGTYPE_BIT_VECTOR ceEngines;
 
@@ -154,16 +155,22 @@ kmigmgrApplyMIGGpuInstanceCeMapping_GH100
             {
                 pLocalPceLceMap[i] = NV2080_CTRL_CE_UPDATE_PCE_LCE_MAPPINGS_INVALID_LCE;
             }
-            kceGetMappingsForMIGGpuInstance_HAL(pGpu, pKCe, lceAvailableMask, pLocalPceLceMap);
+            NV_CHECK_OK_OR_ELSE(status,
+                                LEVEL_ERROR,
+                                kceGetMappingsForMIGGpuInstance_HAL(pGpu, pKCe, lceAvailableMask, pLocalPceLceMap),
+                                goto cleanup;);
 
             if (!kceApplyMIGMappings(pGpu, pKCe, pLocalPceLceMap, lceAvailableMask))
             {
                 NV_PRINTF(LEVEL_ERROR, "Failed to apply MIG Mappings on LCE mask 0x%x\n", lceAvailableMask);
+                status = NV_ERR_INVALID_STATE;
+                goto cleanup;
             }
         KCE_ITER_END;
 
+cleanup:
         portMemFree(pLocalPceLceMap);
-        return NV_OK;
+        return status;
 }
 
 /*!

@@ -729,7 +729,7 @@ nvswitch_lib_check_api_version
     }
 
     nvswitch_os_memset(kernel_version, 0x0, length);
-    nvswitch_os_strncpy(kernel_version, NV_VERSION_STRING, VERSION_LENGTH);
+    nvswitch_os_memcpy(kernel_version, NV_VERSION_STRING, VERSION_LENGTH);
 
     kernel_version[length - 1] = '\0';
 

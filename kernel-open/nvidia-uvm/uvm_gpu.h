@@ -1613,6 +1613,20 @@ static bool uvm_parent_gpu_supports_full_coherence(uvm_parent_gpu_t *parent_gpu)
     return parent_gpu->is_integrated_gpu;
 }
 
+// NUMA-attached and integrated GPUs don't support ZONE_DEVICE (devmem) memory,
+// so pageable memory which uses ZONE_DEVICE can only be migrated to GPUs which
+// have neither property.
+//
+// CDMM GPUs use a separate devmem mechanism that does not rely on
+// DEVICE_PRIVATE pages, so UVM_CAN_USE_DEVICE_PRIVATE_MEMREMAP_PAGES() does
+// not apply to them — uvm_devmem_init() handles this distinction internally.
+static bool uvm_gpu_supports_devmem(uvm_gpu_t *gpu)
+{
+    if (gpu->mem_info.numa.enabled || gpu->parent->is_integrated_gpu)
+        return false;
+    return gpu->parent->cdmm_enabled || UVM_CAN_USE_DEVICE_PRIVATE_MEMREMAP_PAGES();
+}
+
 // Returns a GPU peer pair index in the range [0 .. UVM_MAX_UNIQUE_GPU_PAIRS).
 NvU32 uvm_gpu_pair_index(const uvm_gpu_id_t id0, const uvm_gpu_id_t id1);
 

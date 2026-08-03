@@ -644,14 +644,16 @@ kbusRestoreBar2_GM107
 
                 if (status == NV_OK)
                     break;
-                else if (status == NV_ERR_TIMEOUT)
+
+                if (gpuCheckTimeout(pGpu, &timeout) == NV_ERR_TIMEOUT)
                 {
-                    NV_PRINTF(LEVEL_ERROR, "kbusVerifyBar2_HAL() keeps failing.\n");
+                    NV_PRINTF(LEVEL_ERROR,
+                              "kbusVerifyBar2_HAL() keeps failing, bailout with status 0x%08x.\n",
+                              status);
                     DBG_BREAKPOINT();
                     break;
                 }
 
-                status = gpuCheckTimeout(pGpu, &timeout);
                 osSpinLoop();
             } while (1);
         }

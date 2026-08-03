@@ -475,10 +475,12 @@ static NvBool KmsAllocateDevice(struct NvKmsKapiDevice *device)
 
     /* Allocate NVKMS device */
 
-    nvkms_strncpy(
+    ct_assert(sizeof(NV_VERSION_STRING) <=
+              sizeof(paramsAlloc->request.versionString));
+    nvkms_memcpy(
         paramsAlloc->request.versionString,
         NV_VERSION_STRING,
-        sizeof(paramsAlloc->request.versionString));
+        sizeof(NV_VERSION_STRING));
 
     paramsAlloc->request.deviceId.rmDeviceId = device->deviceInstance;
     paramsAlloc->request.deviceId.migDevice = device->migDevice;

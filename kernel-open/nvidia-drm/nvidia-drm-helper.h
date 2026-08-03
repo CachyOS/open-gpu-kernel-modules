@@ -135,6 +135,92 @@ nv_drm_prime_pages_to_sg(struct drm_device *dev,
 #include <drm/drm_atomic.h>
 #include <drm/drm_atomic_helper.h>
 
+/*
+ * Linux commit 5164f7e7ff8e ("drm: Rename struct drm_atomic_state to
+ * drm_atomic_commit"), expected in Linux v7.2, renamed the top-level atomic
+ * commit object and its lifetime helpers.
+ */
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+typedef struct drm_atomic_commit nv_drm_atomic_state_base_t;
+#else
+typedef struct drm_atomic_state nv_drm_atomic_state_base_t;
+#endif
+
+/*
+ * Linux commits 29b77ad7b9ca ("drm/atomic: Pass the full state to CRTC
+ * atomic_check") and 7c11b99a8e58 ("drm/atomic: Pass the full state to
+ * planes atomic_check") changed the CRTC and plane helper atomic_check
+ * callbacks from per-object state arguments to the full atomic transaction
+ * state. The existing conftests detect those full-state callback signatures
+ * when the argument type is still struct drm_atomic_state.
+ *
+ * Linux commit 5164f7e7ff8e ("drm: Rename struct drm_atomic_state to
+ * drm_atomic_commit"), expected in Linux v7.2, renamed that full transaction
+ * type. In those kernels, the callbacks still use the full atomic transaction
+ * state ABI, but the argument type is struct drm_atomic_commit. Either
+ * conftest means the helper callbacks take the full atomic transaction state.
+ */
+#if defined(NV_DRM_CRTC_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG) || \
+    defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+#define NV_DRM_CRTC_ATOMIC_CHECK_HAS_FULL_STATE_ARG
+#endif
+
+#if defined(NV_DRM_PLANE_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG) || \
+    defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+#define NV_DRM_PLANE_ATOMIC_CHECK_HAS_FULL_STATE_ARG
+#endif
+
+static inline nv_drm_atomic_state_base_t *
+nv_drm_atomic_state_base_alloc(struct drm_device *dev)
+{
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+    return drm_atomic_commit_alloc(dev);
+#else
+    return drm_atomic_state_alloc(dev);
+#endif
+}
+
+static inline int
+nv_drm_atomic_state_base_init(struct drm_device *dev,
+                         nv_drm_atomic_state_base_t *state)
+{
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+    return drm_atomic_commit_init(dev, state);
+#else
+    return drm_atomic_state_init(dev, state);
+#endif
+}
+
+static inline void
+nv_drm_atomic_state_base_put(nv_drm_atomic_state_base_t *state)
+{
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+    drm_atomic_commit_put(state);
+#else
+    drm_atomic_state_put(state);
+#endif
+}
+
+static inline void
+nv_drm_atomic_state_base_default_clear(nv_drm_atomic_state_base_t *state)
+{
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+    drm_atomic_commit_default_clear(state);
+#else
+    drm_atomic_state_default_clear(state);
+#endif
+}
+
+static inline void
+nv_drm_atomic_state_base_default_release(nv_drm_atomic_state_base_t *state)
+{
+#if defined(NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT)
+    drm_atomic_commit_default_release(state);
+#else
+    drm_atomic_state_default_release(state);
+#endif
+}
+
 int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
                                      struct drm_modeset_acquire_ctx *ctx);
 

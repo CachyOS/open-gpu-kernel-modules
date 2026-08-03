@@ -576,5 +576,7 @@ _nvos32FunctionAllocOsDesc
                                &allocParams,
                                sizeof(allocParams));
 
+    pArgs->data.AllocOsDesc.descriptor = allocParams.descriptor;
+
     return status;
 }

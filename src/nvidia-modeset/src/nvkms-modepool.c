@@ -522,9 +522,10 @@ ValidateModeIndexEdid(NVDpyEvoPtr pDpyEvo,
 
         if (description != NULL) {
             nvAssert(nvkms_strlen(description) < sizeof(pReply->description));
-            nvkms_strncpy(pReply->description, description,
-                          sizeof(pReply->description));
-            pReply->description[sizeof(pReply->description) - 1] = '\0';
+            nvkms_snprintf(pReply->description,
+                           sizeof(pReply->description),
+                           "%s",
+                           description);
         }
 
         nvBuildModeName(kmsMode.timings.hVisible, kmsMode.timings.vVisible,

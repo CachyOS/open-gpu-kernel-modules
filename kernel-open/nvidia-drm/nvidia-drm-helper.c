@@ -91,7 +91,7 @@
 int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
                                      struct drm_modeset_acquire_ctx *ctx)
 {
-    struct drm_atomic_state *state;
+    nv_drm_atomic_state_base_t *state;
     struct drm_connector_state *conn_state;
     struct drm_connector *conn;
     struct drm_plane_state *plane_state;
@@ -101,7 +101,7 @@ int nv_drm_atomic_helper_disable_all(struct drm_device *dev,
     unsigned plane_mask = 0;
     int ret, i;
 
-    state = drm_atomic_state_alloc(dev);
+    state = nv_drm_atomic_state_base_alloc(dev);
     if (!state)
         return -ENOMEM;
 
@@ -173,7 +173,7 @@ free:
        }
     }
 
-    drm_atomic_state_put(state);
+    nv_drm_atomic_state_base_put(state);
 
     return ret;
 }

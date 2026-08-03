@@ -2343,6 +2343,7 @@ NV_STATUS RmGcxPowerManagement(
     NvBool *bTryAgain
 )
 {
+    MemoryManager *pMemoryManager           = GPU_GET_MEMORY_MANAGER(pGpu);
     KernelMemorySystem *pKernelMemorySystem = GPU_GET_KERNEL_MEMORY_SYSTEM(pGpu);
     nv_state_t         *nv                  = NV_GET_NV_STATE(pGpu);
     nv_priv_t          *nvp                 = NV_GET_NV_PRIV(nv);
@@ -2364,7 +2365,6 @@ NV_STATUS RmGcxPowerManagement(
 
     if (bEnter)
     {
-        MemoryManager *pMemoryManager = GPU_GET_MEMORY_MANAGER(pGpu);
         NvU64          usedFbSize = 0;
         NvBool         bCanUseGc6 = NV_FALSE;
         NV_STATUS      fbsrStatus = NV_ERR_GENERIC;
@@ -2429,7 +2429,11 @@ NV_STATUS RmGcxPowerManagement(
                  * might not be freed.
                  */
                 fbsrFreeReservedSysMemoryForPowerMgmt(pMemoryManager->pFbsr[FBSR_TYPE_DMA]);
-                pKernelMemorySystem->bPreserveComptagBackingStoreOnSuspend = NV_FALSE;
+
+                if (!pMemoryManager->bUseVirtualCopyOnSuspend)
+                {
+                    pKernelMemorySystem->bPreserveComptagBackingStoreOnSuspend = nv->preserve_vidmem_allocations;
+                }
             }
         }
         else if (bCanUseGc6)
@@ -2503,7 +2507,10 @@ NV_STATUS RmGcxPowerManagement(
         {
             status = RmPowerManagement(pGpu, NV_PM_ACTION_RESUME);
             pGpu->setProperty(pGpu, PDB_PROP_GPU_GCOFF_STATE_ENTERED, NV_FALSE);
-            pKernelMemorySystem->bPreserveComptagBackingStoreOnSuspend = NV_FALSE;
+            if (!pMemoryManager->bUseVirtualCopyOnSuspend)
+            {
+                pKernelMemorySystem->bPreserveComptagBackingStoreOnSuspend = nv->preserve_vidmem_allocations;
+            }
         }
         else if (pGpu->getProperty(pGpu, PDB_PROP_GPU_RG_STATE_ENTERED))
         {

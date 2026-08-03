@@ -1235,10 +1235,11 @@ static void nvGpuOpsRmDeviceDestroy(struct gpuDevice *device)
 
         portSyncRwLockAcquireWrite(session->devicesLock);
         deleteDescriptor(&session->devices, deviceKey, (void**)&rmDevice);
+        portSyncRwLockReleaseWrite(session->devicesLock);
+
         pRmApi->Free(pRmApi, session->handle, rmDevice->deviceHandle);
         portSyncRwLockDestroy(rmDevice->btreeLock);
         portMemFree(rmDevice);
-        portSyncRwLockReleaseWrite(session->devicesLock);
     }
 }
 
@@ -2709,8 +2710,8 @@ NV_STATUS nvGpuOpsDupAddressSpace(struct gpuDevice *device,
     portMemSet(vaSpaceInfo, 0, sizeof(*vaSpaceInfo));
 
     // TODO - Move this check to RMDupObject later.
-    // TODO: Acquired because serverutilGetResourceRef expects RMAPI lock. Necessary?
     // Find the device associated with the hUserVASpace and verify that the UUID belongs to it.
+    // TODO: Acquired because serverutilGetResourceRef expects RMAPI lock. Necessary?
     status = rmapiLockAcquire(RMAPI_LOCK_FLAGS_READ, RM_LOCK_MODULES_GPU_OPS);
     if (status != NV_OK)
         return status;
@@ -3139,10 +3140,11 @@ static NV_STATUS getSystemP2PCaps(struct gpuDevice *device1,
                                 (~p2pCapsParams->p2pOptimalWriteCEs + 1);
         }
 
-        NV_ASSERT(nvPopCount32(p2pCapsParams->p2pOptimalWriteCEs) == 1);
-
+        // TODO: Bug 3864813: [UVM][GH180] Figure out LCE selection and
+        //                    splitting across LCEs if needed
+        // Update UVM interface to accept multiple CEs
         // Query the write mask only; UVM has no use for the read mask
-        p2pCaps->optimalNvlinkWriteCEs[0] = BIT_IDX_32(p2pCapsParams->p2pOptimalWriteCEs);
+        p2pCaps->optimalNvlinkWriteCEs[0] = BIT_IDX_32(LOWESTBIT(p2pCapsParams->p2pOptimalWriteCEs));
 
         // Query the P2P capabilities of device2->device1, which may be
         // different from those of device1->device2
@@ -3156,9 +3158,11 @@ static NV_STATUS getSystemP2PCaps(struct gpuDevice *device1,
                                 (~p2pCapsParams->p2pOptimalWriteCEs + 1);
         }
 
-        NV_ASSERT(nvPopCount32(p2pCapsParams->p2pOptimalWriteCEs) == 1);
-
-        p2pCaps->optimalNvlinkWriteCEs[1] = BIT_IDX_32(p2pCapsParams->p2pOptimalWriteCEs);
+        // TODO: Bug 3864813: [UVM][GH180] Figure out LCE selection and
+        //                    splitting across LCEs if needed
+        // Update UVM interface to accept multiple CEs
+        // Query the write mask only; UVM has no use for the read mask
+        p2pCaps->optimalNvlinkWriteCEs[1] = BIT_IDX_32(LOWESTBIT(p2pCapsParams->p2pOptimalWriteCEs));
     }
 
 done:

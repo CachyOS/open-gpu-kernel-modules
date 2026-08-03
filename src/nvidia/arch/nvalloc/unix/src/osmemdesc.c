@@ -212,6 +212,17 @@ osCreateMemdescFromPages
         bUnprotected = NV_TRUE;
     }
 
+    if (FLD_TEST_DRF(OS02, _FLAGS, _ALLOC_USER_READ_ONLY, _YES, flags))
+    {
+        memdescFlags |= MEMDESC_FLAGS_USER_READ_ONLY;
+        memdescFlags |= MEMDESC_FLAGS_DEVICE_READ_ONLY;
+    }
+
+    if (FLD_TEST_DRF(OS02, _FLAGS, _ALLOC_DEVICE_READ_ONLY, _YES, flags))
+    {
+        memdescFlags |= MEMDESC_FLAGS_DEVICE_READ_ONLY;
+    }
+
     rmStatus = memdescCreate(ppMemDesc, pGpu, size, 0,
                              NV_MEMORY_NONCONTIGUOUS, ADDR_SYSMEM,
                              cacheType, memdescFlags);

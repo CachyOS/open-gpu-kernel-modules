@@ -182,6 +182,12 @@ subdeviceCtrlCmdEventSetMemoryNotifies_IMPL
     NV_CHECK_OK_OR_RETURN(LEVEL_SILENT,
         memGetByHandle(pClient, pSetMemoryNotifiesParams->hMemory, &pMemory));
 
+    if (pMemory->pDevice != pSubdevice->pDevice)
+    {
+        NV_PRINTF(LEVEL_INFO, "subdeviceCtrlCmdEventSetMemoryNotifies: rejecting memory not associated with this device\n");
+        return NV_ERR_INVALID_ARGUMENT;
+    }
+
     if (pMemory->pMemDesc->Size < sizeof(NvNotification) * NV2080_NOTIFIERS_MAXCOUNT)
     {
         return NV_ERR_INVALID_LIMIT;

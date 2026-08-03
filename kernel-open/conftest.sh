@@ -1175,14 +1175,15 @@ compile_test() {
             #
             CODE="
             #include <linux/pci.h>
+            #if defined(NV_LINUX_NVGRACE_EGM_H_PRESENT)
             #include <linux/nvgrace-egm.h>
+            #endif
             void conftest_egm_module_helper_api_present() {
-                struct pci_dev *pdev = NULL;
-                register_egm_node(pdev);
-                unregister_egm_node(pdev);
+                register_egm_node();
+                unregister_egm_node();
             }
             "
-            compile_check_conftest "$CODE" "NV_EGM_MODULE_HELPER_API_PRESENT" "" "types"
+            compile_check_conftest "$CODE" "NV_EGM_MODULE_HELPER_API_PRESENT" "" "functions"
         ;;
 
         egm_bad_pages_handling_support)
@@ -5214,6 +5215,40 @@ compile_test() {
             }"
 
             compile_check_conftest "$CODE" "NV_DRM_COLOROP_HAS_FUNCS" "" "types"
+        ;;
+
+        use_dma_iommu)
+            #
+            # Determine if use_dma_iommu() function is present.
+            #
+            # Added by commit 19156263cb1f ("dma-mapping: use IOMMU DMA
+            # calls for common alloc/free page calls") in 6.12
+            #
+            CODE="
+            #if defined(NV_LINUX_IOMMU_DMA_H_PRESENT)
+            #include <linux/iommu-dma.h>
+            #endif
+
+            void conftest_use_dma_iommu(void) {
+                use_dma_iommu();
+            }"
+            compile_check_conftest "$CODE" "NV_USE_DMA_IOMMU_PRESENT" "" "functions"
+        ;;
+
+        drm_atomic_commit_struct_present)
+            #
+            # Determine if 'struct drm_atomic_state' has been renamed to
+            # 'struct drm_atomic_commit'.
+            #
+            # Renamed by commit 5164f7e7ff8e ("drm: Rename struct
+            # drm_atomic_state to drm_atomic_commit"), expected in Linux v7.2.
+            #
+            CODE="
+            #include <drm/drm_atomic.h>
+
+            struct drm_atomic_commit state;"
+
+            compile_check_conftest "$CODE" "NV_DRM_ATOMIC_COMMIT_STRUCT_PRESENT" "" "types"
         ;;
 
         # When adding a new conftest entry, please use the correct format for

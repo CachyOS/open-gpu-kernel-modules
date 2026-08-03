@@ -109,7 +109,7 @@ _nvencsessionCtrlCmdNvencSwSessionUpdateInfo
             rpcParams.timestampBufferSize   = 0;
 
             NV_RM_RPC_CONTROL(pGpu, pRmCtrlParams->hClient, pRmCtrlParams->hObject, pRmCtrlParams->cmd,
-                            &rpcParams, pRmCtrlParams->paramsSize, status);
+                            &rpcParams, sizeof(rpcParams), status);
         }
     }
     else if (pNvencSession->version == NVA0BC_ALLOC_PARAMS_VER_1)

@@ -72,6 +72,20 @@ osdescConstruct_IMPL
     limit = pUserParams->limit;
 
     //
+    // Keep OS descriptor imports consistent with the legacy NVOS02 path:
+    // CPU read-only backing memory must also be read-only to the GPU.
+    //
+    if (FLD_TEST_DRF(OS32, _ATTR2, _PROTECTION_USER, _READ_ONLY,
+                     pUserParams->attr2) ||
+        (pUserParams->flags & NVOS32_ALLOC_FLAGS_USER_READ_ONLY))
+    {
+        pUserParams->attr2 =
+            FLD_SET_DRF(OS32, _ATTR2, _PROTECTION_DEVICE, _READ_ONLY,
+                        pUserParams->attr2);
+        pUserParams->flags |= NVOS32_ALLOC_FLAGS_DEVICE_READ_ONLY;
+    }
+
+    //
     // Bug 860684: osCreateMemFromOsDescriptor expects OS02 flags
     // from the old NvRmAllocMemory64() interface so we need to
     // translate the OS32_ATTR flags to OS02 flags.
@@ -89,6 +103,16 @@ osdescConstruct_IMPL
         {
             return NV_ERR_NOT_SUPPORTED;
         }
+    }
+
+    //
+    // OS_PAGE_ARRAY must come from the Unix escape layer after user pages are
+    // pinned and the descriptor pointer has been replaced with a kernel pointer.
+    //
+    if ((pUserParams->descriptorType == NVOS32_DESCRIPTOR_TYPE_OS_PAGE_ARRAY) &&
+        (pCallContext->secInfo.paramLocation != PARAM_LOCATION_KERNEL))
+    {
+        return NV_ERR_NOT_SUPPORTED;
     }
 
     if (pUserParams->descriptorType == NVOS32_DESCRIPTOR_TYPE_OS_IO_MEMORY)
@@ -127,6 +151,13 @@ osdescConstruct_IMPL
                                     &pMemDesc,
                                     pUserParams->descriptorType,
                                     pRmAllocParams->pSecInfo->privLevel));
+
+    if ((pUserParams->descriptorType == NVOS32_DESCRIPTOR_TYPE_OS_PAGE_ARRAY) ||
+        (pUserParams->descriptorType == NVOS32_DESCRIPTOR_TYPE_OS_IO_MEMORY))
+    {
+        // The memdesc cleanup path now owns this import backing.
+        pUserParams->descriptor = NvP64_NULL;
+    }
 
     if (!memdescGetContiguity(pMemDesc, AT_PA))
     {
@@ -280,4 +311,3 @@ osdescCanCopy_IMPL
     // In case of MODS the caller is responsible for not freeing the memory.
     return (RMCFG_FEATURE_PLATFORM_UNIX || RMCFG_FEATURE_PLATFORM_MODS);
 }
-

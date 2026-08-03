@@ -2311,10 +2311,11 @@ static void PatchAndParseEdid(
 
     for (i = 0; i < NVT_EDID_MAX_LONG_DISPLAY_DESCRIPTOR; i++) {
         if (pParsedEdid->info.ldd[i].tag == NVT_EDID_DISPLAY_DESCRIPTOR_DPSN) {
-            nvkms_strncpy(
-                pParsedEdid->serialNumberString,
-                (const char *)pParsedEdid->info.ldd[i].u.serial_number.str,
-                sizeof(pParsedEdid->serialNumberString));
+            ct_assert(sizeof(pParsedEdid->info.ldd[i].u.serial_number.str) <
+                      sizeof(pParsedEdid->serialNumberString));
+            nvkms_memcpy(pParsedEdid->serialNumberString,
+                         pParsedEdid->info.ldd[i].u.serial_number.str,
+                         sizeof(pParsedEdid->info.ldd[i].u.serial_number.str));
             pParsedEdid->serialNumberString[
                 sizeof(pParsedEdid->serialNumberString) - 1] = '\0';
             break;

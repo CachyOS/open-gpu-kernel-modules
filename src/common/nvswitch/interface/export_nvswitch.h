@@ -803,14 +803,6 @@ nvswitch_os_strlen
     const char *str
 );
 
-char*
-nvswitch_os_strncpy
-(
-    char *pDest,
-    const char *pSrc,
-    NvLength length
-);
-
 int
 nvswitch_os_strncmp
 (

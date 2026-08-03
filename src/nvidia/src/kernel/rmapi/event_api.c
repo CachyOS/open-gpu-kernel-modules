@@ -179,7 +179,8 @@ eventapiConstruct_IMPL
                 rmStatus = osUserHandleToKernelPtr(pRsClient->hClient,
                                                    pNv0050AllocParams->data,
                                                    &pNv0050AllocParams->data);
-                bUserOsEventHandle = NV_TRUE;
+                if (rmStatus == NV_OK)
+                    bUserOsEventHandle = NV_TRUE;
             }
         }
 
@@ -200,6 +201,11 @@ eventapiConstruct_IMPL
     return NV_OK;
 
 cleanup:
+    if (bUserOsEventHandle)
+    {
+        osDereferenceObjectCount(NvP64_VALUE(pNv0050AllocParams->data));
+        bUserOsEventHandle = NV_FALSE;
+    }
     eventapiDestruct_IMPL(pEvent);
     return rmStatus;
 }

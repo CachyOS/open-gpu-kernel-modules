@@ -27,20 +27,21 @@
 
 #if defined(NV_DRM_AVAILABLE)
 
+#include "nvidia-drm-helper.h"
 #include "nvkms-kapi.h"
 
 struct drm_device;
-struct drm_atomic_state;
 
-struct drm_atomic_state *nv_drm_atomic_state_alloc(struct drm_device *dev);
-void nv_drm_atomic_state_clear(struct drm_atomic_state *state);
-void nv_drm_atomic_state_free(struct drm_atomic_state *state);
+nv_drm_atomic_state_base_t *
+nv_drm_atomic_state_alloc(struct drm_device *dev);
+void nv_drm_atomic_state_clear(nv_drm_atomic_state_base_t *state);
+void nv_drm_atomic_state_free(nv_drm_atomic_state_base_t *state);
 
 int nv_drm_atomic_check(struct drm_device *dev,
-                        struct drm_atomic_state *state);
+                        nv_drm_atomic_state_base_t *state);
 
 int nv_drm_atomic_commit(struct drm_device *dev,
-                         struct drm_atomic_state *state, bool nonblock);
+                         nv_drm_atomic_state_base_t *state, bool nonblock);
 
 
 void nv_drm_handle_flip_occurred(struct nv_drm_device *nv_dev,

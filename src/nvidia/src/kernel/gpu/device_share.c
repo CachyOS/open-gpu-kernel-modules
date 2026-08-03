@@ -21,6 +21,8 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
+
+
 #include "core/core.h"
 #include "os/os.h"
 #include "mem_mgr/virt_mem_mgr.h"
@@ -81,6 +83,31 @@ deviceSetClientShare_IMPL
     }
 
     return NV_OK;
+}
+
+static NvBool
+deviceIsClientShareRoot
+(
+    Device   *pDevice,
+    NvHandle  hClientShare
+)
+{
+    OBJGPU *pGpu = GPU_RES_GET_GPU(pDevice);
+
+    if ((hClientShare == NV01_NULL_OBJECT) ||
+        (hClientShare == RES_GET_CLIENT_HANDLE(pDevice)))
+    {
+        return NV_TRUE;
+    }
+
+    if (IS_VIRTUAL_WITH_SRIOV(pGpu) &&
+        gpuIsSplitVasManagementServerClientRmEnabled(pGpu) &&
+        (hClientShare == pGpu->hDefaultClientShare))
+    {
+        return NV_TRUE;
+    }
+
+    return NV_FALSE;
 }
 
 /*!
@@ -270,6 +297,10 @@ deviceInitClientShare
         // Init target share if needed
         if (pShareDevice->pVASpace == NULL)
         {
+            // Only lazily initialize concrete VASpace roots, not share chains.
+            if (!deviceIsClientShareRoot(pShareDevice, pShareDevice->hClientShare))
+                return NV_ERR_INVALID_ARGUMENT;
+
             status = deviceInitClientShare(pShareDevice,
                                            pShareDevice->hClientShare,
                                            pShareDevice->vaSize,

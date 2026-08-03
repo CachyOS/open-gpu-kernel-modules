@@ -551,6 +551,17 @@ static void __nvoc_init_funcTable_KernelBif_1(KernelBif *pThis, GpuHalspecOwner 
         pThis->__kbifPollBarFirewallDisengage__ = &kbifPollBarFirewallDisengage_ac1694;
     }
 
+    // kbifUpdateCplToWar5656465 -- halified (2 hals) body
+    if (( ((chipHal_HalVarIdx >> 5) == 2UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x00000006UL) )) /* ChipHal: GB202 | GB203 */ 
+    {
+        pThis->__kbifUpdateCplToWar5656465__ = &kbifUpdateCplToWar5656465_GB202;
+    }
+    // default
+    else
+    {
+        pThis->__kbifUpdateCplToWar5656465__ = &kbifUpdateCplToWar5656465_d44104;
+    }
+
     // kbifGetXveStatusBits -- halified (4 hals) body
     if (( ((chipHal_HalVarIdx >> 5) == 3UL) && ((1UL << (chipHal_HalVarIdx & 0x1f)) & 0x0000e000UL) )) /* ChipHal: T234D | T239D | T264D */ 
     {
@@ -1534,13 +1545,13 @@ static void __nvoc_init_funcTable_KernelBif_1(KernelBif *pThis, GpuHalspecOwner 
     {
         pThis->__kbifDoCxlReset__ = &kbifDoCxlReset_395e98;
     }
-} // End __nvoc_init_funcTable_KernelBif_1 with approximately 221 basic block(s).
+} // End __nvoc_init_funcTable_KernelBif_1 with approximately 223 basic block(s).
 
 
-// Initialize vtable(s) for 85 virtual method(s).
+// Initialize vtable(s) for 86 virtual method(s).
 void __nvoc_init_funcTable_KernelBif(KernelBif *pThis, GpuHalspecOwner *pGpuhalspecowner, RmHalspecOwner *pRmhalspecowner) {
 
-    // Initialize vtable(s) with 72 per-object function pointer(s).
+    // Initialize vtable(s) with 73 per-object function pointer(s).
     __nvoc_init_funcTable_KernelBif_1(pThis, pGpuhalspecowner, pRmhalspecowner);
 }
 

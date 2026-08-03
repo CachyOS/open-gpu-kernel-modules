@@ -987,7 +987,7 @@ static void nv_drm_master_set(struct drm_device *dev,
 static
 int nv_drm_reset_input_colorspace(struct drm_device *dev)
 {
-    struct drm_atomic_state *state;
+    nv_drm_atomic_state_base_t *state;
     struct drm_plane_state *plane_state;
     struct drm_plane *plane;
     struct nv_drm_plane_state *nv_drm_plane_state;
@@ -996,7 +996,7 @@ int nv_drm_reset_input_colorspace(struct drm_device *dev)
     bool do_reset = false;
     NvU32 flags = 0;
 
-    state = drm_atomic_state_alloc(dev);
+    state = nv_drm_atomic_state_base_alloc(dev);
     if (!state)
         return -ENOMEM;
 
@@ -1027,7 +1027,7 @@ int nv_drm_reset_input_colorspace(struct drm_device *dev)
     }
 
 out:
-    drm_atomic_state_put(state);
+    nv_drm_atomic_state_base_put(state);
     drm_modeset_drop_locks(&ctx);
     drm_modeset_acquire_fini(&ctx);
 
@@ -1435,7 +1435,7 @@ static int nv_drm_grant_permission_ioctl(struct drm_device *dev, void *data,
 }
 
 static int
-nv_drm_atomic_disable_connector(struct drm_atomic_state *state,
+nv_drm_atomic_disable_connector(nv_drm_atomic_state_base_t *state,
                                 struct nv_drm_connector *nv_connector)
 {
     struct drm_crtc_state *crtc_state;
@@ -1468,7 +1468,7 @@ static int nv_drm_revoke_modeset_permission(struct drm_device *dev,
                                             struct drm_file *filep, NvU32 dpyId)
 {
     struct drm_modeset_acquire_ctx *pctx;
-    struct drm_atomic_state *state;
+    nv_drm_atomic_state_base_t *state;
     struct drm_connector *connector;
     struct drm_crtc *crtc;
     int ret = 0;
@@ -1483,7 +1483,7 @@ static int nv_drm_revoke_modeset_permission(struct drm_device *dev,
     pctx = dev->mode_config.acquire_ctx;
 #endif
 
-    state = drm_atomic_state_alloc(dev);
+    state = nv_drm_atomic_state_base_alloc(dev);
     if (!state) {
         ret = -ENOMEM;
         goto done;
@@ -1519,7 +1519,7 @@ static int nv_drm_revoke_modeset_permission(struct drm_device *dev,
 
     ret = drm_atomic_commit(state);
 done:
-    drm_atomic_state_put(state);
+    nv_drm_atomic_state_base_put(state);
 
 #if NV_DRM_MODESET_LOCK_ALL_END_ARGUMENT_COUNT == 3
     DRM_MODESET_LOCK_ALL_END(dev, ctx, ret);

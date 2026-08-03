@@ -388,6 +388,10 @@ kernelhostvgpudeviceapiCtrlCmdSetVgpuGuestLifeCycleState_IMPL
     NV_ASSERT_OR_RETURN(!IS_GSP_CLIENT(pGpu) || pKernelHostVgpuDeviceApi->pShared->pDevice->bGspPluginTaskInitialized,
                         NV_ERR_INVALID_STATE);
 
+    NV_CHECK_OR_RETURN(LEVEL_INFO,
+                       pParams->vmLifeCycleState < NVA081_NOTIFIERS_MAXCOUNT,
+                       NV_ERR_INVALID_ARGUMENT);
+
     if (pParams->vmLifeCycleState == NVA081_NOTIFIERS_EVENT_VGPU_GUEST_DESTROYED)
         status = kvgpumgrClearGuestVmInfo(pGpu, pKernelHostVgpuDeviceApi->pShared->pDevice);
 
@@ -990,39 +994,48 @@ kernelhostvgpudeviceapiCtrlCmdBootloadVgpuTask_IMPL
 
     // Initialize logging buffers for vgpu partition
     {
-        if ((pParams->initTaskLogBuffOffset + pParams->initTaskLogBuffSize) >=
-             pBootloadParams->pluginHeapMemoryLength)
+        NvU64 logBuffEnd;
+
+        if (!portSafeAddU64(pParams->initTaskLogBuffOffset, pParams->initTaskLogBuffSize, &logBuffEnd) ||
+            (logBuffEnd >= pBootloadParams->pluginHeapMemoryLength))
         {
             NV_PRINTF(LEVEL_ERROR, "Invalid init task log buffer\n");
             status = NV_ERR_INVALID_ARGUMENT;
             goto done;
         }
 
-        if ((pParams->vgpuTaskLogBuffOffset + pParams->vgpuTaskLogBuffSize) >=
-             pBootloadParams->pluginHeapMemoryLength)
+        if (!portSafeAddU64(pParams->vgpuTaskLogBuffOffset, pParams->vgpuTaskLogBuffSize, &logBuffEnd) ||
+            (logBuffEnd >= pBootloadParams->pluginHeapMemoryLength))
         {
             NV_PRINTF(LEVEL_ERROR, "Invalid vgpu task log buffer\n");
             status = NV_ERR_INVALID_ARGUMENT;
             goto done;
         }
 
-        if ((pParams->kernelLogBuffOffset + pParams->kernelLogBuffSize) >=
-             pBootloadParams->pluginHeapMemoryLength)
+        if (!portSafeAddU64(pParams->kernelLogBuffOffset, pParams->kernelLogBuffSize, &logBuffEnd) ||
+            (logBuffEnd >= pBootloadParams->pluginHeapMemoryLength))
         {
             NV_PRINTF(LEVEL_ERROR, "Invalid vgpu kernel log buffer\n");
             status = NV_ERR_INVALID_ARGUMENT;
             goto done;
         }
 
-
-        pBootloadParams->initTaskLogBuffOffset  = pParams->initTaskLogBuffOffset +
-                                                  pBootloadParams->pluginHeapMemoryPhysAddr;
+        if (!portSafeAddU64(pParams->initTaskLogBuffOffset,
+                            pBootloadParams->pluginHeapMemoryPhysAddr,
+                            &pBootloadParams->initTaskLogBuffOffset) ||
+            !portSafeAddU64(pParams->vgpuTaskLogBuffOffset,
+                            pBootloadParams->pluginHeapMemoryPhysAddr,
+                            &pBootloadParams->vgpuTaskLogBuffOffset) ||
+            !portSafeAddU64(pParams->kernelLogBuffOffset,
+                            pBootloadParams->pluginHeapMemoryPhysAddr,
+                            &pBootloadParams->kernelLogBuffOffset))
+        {
+            NV_PRINTF(LEVEL_ERROR, "Invalid vgpu log buffer offset\n");
+            status = NV_ERR_INVALID_ARGUMENT;
+            goto done;
+        }
         pBootloadParams->initTaskLogBuffSize    = pParams->initTaskLogBuffSize;
-        pBootloadParams->vgpuTaskLogBuffOffset  = pParams->vgpuTaskLogBuffOffset +
-                                                  pBootloadParams->pluginHeapMemoryPhysAddr;
         pBootloadParams->vgpuTaskLogBuffSize    = pParams->vgpuTaskLogBuffSize;
-        pBootloadParams->kernelLogBuffOffset    = pParams->kernelLogBuffOffset +
-                                                  pBootloadParams->pluginHeapMemoryPhysAddr;
         pBootloadParams->kernelLogBuffSize      = pParams->kernelLogBuffSize;
 
         NV_CHECK_OK_OR_GOTO(status,
@@ -1040,6 +1053,11 @@ kernelhostvgpudeviceapiCtrlCmdBootloadVgpuTask_IMPL
     pBootloadParams->gfid                              = pKernelHostVgpuDevice->gfid;
     pBootloadParams->swizzId                           = pKernelHostVgpuDevice->swizzId;
     pBootloadParams->numGuestFbSegments                = pParams->numGuestFbHandles;
+    if (pParams->ctrlBuffOffset >= pBootloadParams->pluginHeapMemoryLength)
+    {
+        status = NV_ERR_INVALID_ARGUMENT;
+        goto done;
+    }
     pBootloadParams->ctrlBuffOffset                    = pParams->ctrlBuffOffset;
     pBootloadParams->bDeviceProfilingEnabled           = pParams->bDeviceProfilingEnabled;
 

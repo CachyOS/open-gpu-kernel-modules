@@ -1604,16 +1604,16 @@ static int __nv_drm_cursor_atomic_check(struct drm_plane *plane,
     return 0;
 }
 
-#if defined(NV_DRM_PLANE_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG)
+#if defined(NV_DRM_PLANE_ATOMIC_CHECK_HAS_FULL_STATE_ARG)
 static int nv_drm_plane_atomic_check(struct drm_plane *plane,
-                                     struct drm_atomic_state *state)
+                                     nv_drm_atomic_state_base_t *state)
 #else
 static int nv_drm_plane_atomic_check(struct drm_plane *plane,
                                      struct drm_plane_state *plane_state)
 #endif
 {
     struct nv_drm_plane *nv_plane = to_nv_plane(plane);
-#if defined(NV_DRM_PLANE_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG)
+#if defined(NV_DRM_PLANE_ATOMIC_CHECK_HAS_FULL_STATE_ARG)
     struct drm_plane_state *plane_state =
         drm_atomic_get_new_plane_state(state, plane);
 #endif
@@ -2608,15 +2608,15 @@ static int color_mgmt_config_set_luts(struct nv_drm_crtc_state *nv_crtc_state,
  * the 'nv_drm_crtc_state::req_config', that is fine because 'nv_drm_crtc_state'
  * will be discarded if ->atomic_check() fails.
  */
-#if defined(NV_DRM_CRTC_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG)
+#if defined(NV_DRM_CRTC_ATOMIC_CHECK_HAS_FULL_STATE_ARG)
 static int nv_drm_crtc_atomic_check(struct drm_crtc *crtc,
-                                    struct drm_atomic_state *state)
+                                    nv_drm_atomic_state_base_t *state)
 #else
 static int nv_drm_crtc_atomic_check(struct drm_crtc *crtc,
                                     struct drm_crtc_state *crtc_state)
 #endif
 {
-#if defined(NV_DRM_CRTC_ATOMIC_CHECK_HAS_ATOMIC_STATE_ARG)
+#if defined(NV_DRM_CRTC_ATOMIC_CHECK_HAS_FULL_STATE_ARG)
     struct drm_crtc_state *crtc_state =
         drm_atomic_get_new_crtc_state(state, crtc);
 #endif

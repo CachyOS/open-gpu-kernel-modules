@@ -32,6 +32,7 @@
 
 #if !RS_STANDALONE
 #include "os/os.h"
+#include "rmapi/resource.h"
 #endif
 
 // Describes types of clients to find when getting client entries
@@ -642,6 +643,12 @@ serverAllocClient
     // race conditions with serverLockAllClients.
     //
     serverAcquireClientListLock(pServer);
+    if (pServer->activeClientCount == NV_U32_MAX)
+    {
+        serverReleaseClientListLock(pServer);
+        status = NV_ERR_INSUFFICIENT_RESOURCES;
+        goto done;
+    }
     pClientEntry->pClient = pClient;
 
     // Increase client count
@@ -2180,6 +2187,25 @@ done:
     return status;
 }
 
+#if !RS_STANDALONE
+static void
+_serverInitInterUnmapPrivateFromInterMapPrivate
+(
+    RS_INTER_UNMAP_PRIVATE *pUnmapPrivate,
+    RS_INTER_MAP_PRIVATE *pMapPrivate
+)
+{
+    // Rollback runs under serverInterMap_Prologue; only the state consumed by
+    // clientInterUnmap is needed here.
+    portMemSet(pUnmapPrivate, 0, sizeof(*pUnmapPrivate));
+
+    pUnmapPrivate->pGpu = pMapPrivate->pGpu;
+    pUnmapPrivate->hBroadcastDevice = pMapPrivate->hBroadcastDevice;
+    pUnmapPrivate->gpuMask = pMapPrivate->gpuMask;
+    pUnmapPrivate->bSubdeviceHandleProvided = pMapPrivate->bSubdeviceHandleProvided;
+}
+#endif
+
 NV_STATUS
 serverInterMap
 (
@@ -2188,7 +2214,7 @@ serverInterMap
 )
 {
     CLIENT_ENTRY       *pClientEntry = NULL;
-    RsClient           *pClient;
+    RsClient           *pClient = NULL;
     RsResourceRef      *pMapperRef = NULL;
     RsResourceRef      *pMappableRef;
     RsResourceRef      *pContextRef;
@@ -2201,6 +2227,8 @@ serverInterMap
     CALL_CONTEXT  callContext;
     CALL_CONTEXT *pOldContext = NULL;
     NvBool        bRestoreCallContext = NV_FALSE;
+    NvBool        bClientInterMapped = NV_FALSE;
+    NvBool        bMappingAdded = NV_FALSE;
 
     NV_ASSERT_OR_RETURN(pLockInfo != NULL, NV_ERR_INVALID_ARGUMENT);
 
@@ -2271,6 +2299,7 @@ serverInterMap
     status = clientInterMap(pClient, pMapperRef, pMappableRef, pParams);
     if (status != NV_OK)
         goto done;
+    bClientInterMapped = NV_TRUE;
 
     NV_ASSERT_OK_OR_GOTO(status, refCreateInterMapping(pMapperRef, &pMapping), done);
 
@@ -2279,25 +2308,69 @@ serverInterMap
     status = refAddInterMapping(pMapperRef, pMappableRef, pParams->dmaOffset, pContextRef, pMapping);
     if (status != NV_OK)
         goto done;
+    bMappingAdded = NV_TRUE;
 
     pMapping->flags = pParams->flags;
     pMapping->flags2 = pParams->flags2;
     pMapping->pMemDesc = pParams->pMemDesc;
 
 done:
-    serverInterMap_Epilogue(pServer, pParams, &releaseFlags);
-
-    if (bRestoreCallContext)
-        NV_ASSERT_OK(resservRestoreTlsCallContext(pOldContext));
-
     if (status != NV_OK)
     {
         if (pMapping != NULL)
         {
-            refRemoveInterMapping(pMapperRef, pMapping, NV_FALSE);
+            if (bMappingAdded)
+            {
+                refRemoveInterMapping(pMapperRef, pMapping, NV_FALSE);
+            }
             refDestroyInterMapping(pMapperRef, pMapping);
+            pMapping = NULL;
+        }
+
+        if (bClientInterMapped)
+        {
+            RS_INTER_UNMAP_PARAMS unmapParams;
+            NV_STATUS tmpStatus;
+#if !RS_STANDALONE
+            RS_INTER_UNMAP_PRIVATE unmapPrivate;
+#endif
+
+            portMemSet(&unmapParams, 0, sizeof(unmapParams));
+
+            unmapParams.hClient = pParams->hClient;
+            unmapParams.hMapper = pParams->hMapper;
+            unmapParams.hDevice = pParams->hDevice;
+            unmapParams.flags = pParams->flags;
+            unmapParams.dmaOffset = pParams->dmaOffset;
+            unmapParams.size = pParams->length;
+            unmapParams.hMappable = pParams->hMappable;
+            unmapParams.pMemDesc = pParams->pMemDesc;
+            unmapParams.pLockInfo = pParams->pLockInfo;
+            unmapParams.pSecInfo = pParams->pSecInfo;
+
+#if !RS_STANDALONE
+            if (pParams->pPrivate != NULL)
+            {
+                _serverInitInterUnmapPrivateFromInterMapPrivate(&unmapPrivate,
+                                                                pParams->pPrivate);
+                unmapParams.pPrivate = &unmapPrivate;
+                tmpStatus = clientInterUnmap(pClient, pMapperRef, &unmapParams);
+            }
+            else
+            {
+                tmpStatus = NV_ERR_INVALID_STATE;
+            }
+#else
+            tmpStatus = clientInterUnmap(pClient, pMapperRef, &unmapParams);
+#endif
+            NV_ASSERT_OK(tmpStatus);
         }
     }
+
+    serverInterMap_Epilogue(pServer, pParams, &releaseFlags);
+
+    if (bRestoreCallContext)
+        NV_ASSERT_OK(resservRestoreTlsCallContext(pOldContext));
 
     if (pClientEntry != NULL)
     {
@@ -2323,6 +2396,8 @@ serverInterUnmapMapping
     RsInterMapping *pNewMappingRight  = NULL;
     NV_STATUS       status            = NV_OK;
     NvBool          bMappingReadded   = NV_FALSE;
+    NvBool          bNewMappingLeftAdded  = NV_FALSE;
+    NvBool          bNewMappingRightAdded = NV_FALSE;
 
     // Keep the context-level map allocated. Otherwise refAddInterMapping() can OOM, resulting in an invalid state
     refRemoveInterMapping(pMapperRef, pMapping, NV_TRUE);
@@ -2339,6 +2414,7 @@ serverInterUnmapMapping
                                                         pMapping->pContextRef,
                                                         pNewMappingLeft),
                              done);
+        bNewMappingLeftAdded = NV_TRUE;
 
         pNewMappingLeft->flags  = pMapping->flags;
         pNewMappingLeft->flags2 = pMapping->flags2;
@@ -2358,6 +2434,7 @@ serverInterUnmapMapping
                                                         pMapping->pContextRef,
                                                         pNewMappingRight),
                              done);
+        bNewMappingRightAdded = NV_TRUE;
 
         pNewMappingRight->flags  = pMapping->flags;
         pNewMappingRight->flags2 = pMapping->flags2;
@@ -2372,13 +2449,19 @@ done:
     {
         if (pNewMappingLeft != NULL)
         {
-            refRemoveInterMapping(pMapperRef, pNewMappingLeft, NV_TRUE);
+            if (bNewMappingLeftAdded)
+            {
+                refRemoveInterMapping(pMapperRef, pNewMappingLeft, NV_TRUE);
+            }
             refDestroyInterMapping(pMapperRef, pNewMappingLeft);
         }
 
         if (pNewMappingRight != NULL)
         {
-            refRemoveInterMapping(pMapperRef, pNewMappingRight, NV_TRUE);
+            if (bNewMappingRightAdded)
+            {
+                refRemoveInterMapping(pMapperRef, pNewMappingRight, NV_TRUE);
+            }
             refDestroyInterMapping(pMapperRef, pNewMappingRight);
         }
 

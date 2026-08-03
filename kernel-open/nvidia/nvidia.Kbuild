@@ -164,6 +164,7 @@ NV_CONFTEST_FUNCTION_COMPILE_TESTS += shrinker_alloc
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += vma_flags_set_word
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += vm_flags_set
 NV_CONFTEST_FUNCTION_COMPILE_TESTS += get_dev_pagemap_has_pgmap_arg
+NV_CONFTEST_FUNCTION_COMPILE_TESTS += use_dma_iommu
 
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_gpl_sme_active
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_swiotlb_map_sg_attrs
@@ -173,6 +174,8 @@ NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_close_fd
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_pxm_to_node
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_screen_info
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_gpl_screen_info
+NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_sysfb_primary_display
+NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_gpl_sysfb_primary_display
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_i2c_bus_status
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_tegra_fuse_control_read
 NV_CONFTEST_SYMBOL_COMPILE_TESTS += is_export_symbol_present_pci_find_host_bridge

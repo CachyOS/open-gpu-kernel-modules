@@ -120,6 +120,10 @@ _nv8deCtrlCmdReadWriteSurface
                 NV_ERR_INVALID_ARGUMENT);
 
             NvU64 offsetInMapping = virtAddr - pDmaMappingInfo->DmaOffset;
+            // Validate offset is within mapping bounds to prevent integer underflow
+            NV_CHECK_OR_RETURN(LEVEL_ERROR,
+                offsetInMapping < pDmaMappingInfo->pMemDesc->Size,
+                NV_ERR_INVALID_OFFSET);
             curSize = NV_MIN(curSize, pDmaMappingInfo->pMemDesc->Size - offsetInMapping);
 
             TRANSFER_SURFACE surf = { .pMemDesc = pDmaMappingInfo->pMemDesc, .offset = offsetInMapping };
@@ -870,4 +874,3 @@ ksmdbgssnCtrlCmdDebugReadMMUFaultInfo_IMPL
 
     return NV_OK;
 }
-

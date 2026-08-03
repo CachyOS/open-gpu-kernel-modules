@@ -169,6 +169,9 @@
 #include <linux/efi.h>              /* efi_enabled                      */
 #include <linux/fb.h>               /* fb_info struct                   */
 #include <linux/screen_info.h>      /* screen_info                      */
+#if defined(NV_LINUX_SYSFB_H_PRESENT)
+#include <linux/sysfb.h>            /* sysfb_primary_display            */
+#endif
 
 #if !defined(CONFIG_PCI)
 #warning "Attempting to build driver for a platform with no PCI support!"
@@ -250,6 +253,10 @@ NV_STATUS nvos_forward_error_to_cray(struct pci_dev *, NvU32,
         user_function, args...) \
     acpi_walk_namespace(type, start_object, max_depth, \
             user_function, NULL, args)
+#endif
+
+#if defined(NV_LINUX_IOMMU_DMA_H_PRESENT)
+#include <linux/iommu-dma.h>
 #endif
 
 #define NV_PAGE_COUNT(page) \
@@ -938,6 +945,11 @@ typedef struct nv_alloc_s {
  */
 static inline NvBool nv_is_dma_direct(struct device *dev)
 {
+#if defined(NV_USE_DMA_IOMMU_PRESENT)
+    if (use_dma_iommu(dev))
+        return NV_FALSE;
+#endif
+
     return get_dma_ops(dev) == NULL;
 }
 
@@ -1041,6 +1053,7 @@ typedef struct nv_dma_map_s {
     NvU64 page_count;
     NvBool contiguous;
     NvU32 cache_type;
+    NvBool bReadOnlyDeviceMap;
     struct sg_table *import_sgt;
 
     union
@@ -1711,6 +1724,25 @@ typedef enum
 #else
 #include <linux/gpio/driver.h>
 
+static inline int __to_hwgpio(const struct gpio_device *gdev,
+                              const struct of_phandle_args *gpiospec)
+{
+#if defined(CONFIG_OF_GPIO)
+    /*
+     * Use the chip's of_xlate callback to translate the DT GPIO
+     * specifier into a linear offset.  Tegra GPIO controllers encode
+     * port and pin in args[0] and of_xlate sums per-port pin counts
+     * to produce the real offset.
+     */
+    struct gpio_chip *chip = gpio_device_get_chip(gdev);
+
+    if (chip->of_xlate)
+        return chip->of_xlate(chip, gpiospec, NULL);
+#endif
+
+    return gpiospec->args[0];
+}
+
 /*
  * of_get_named_gpio() was removed along with linux/of_gpio.h by commit
  * 51aaf65bbd21 ("gpio: of: Remove <linux/of_gpio.h>"). Provide a compat
@@ -1722,7 +1754,7 @@ static inline int of_get_named_gpio(const struct device_node *np,
     struct of_phandle_args gpiospec;
     struct gpio_device *gdev;
     struct gpio_desc *desc;
-    int ret;
+    int ret, hwgpio;
 
     if (!np)
         return -ENOENT;
@@ -1737,30 +1769,13 @@ static inline int of_get_named_gpio(const struct device_node *np,
     if (!gdev)
         return -EPROBE_DEFER;
 
-    /*
-     * Use the chip's of_xlate callback to translate the DT GPIO
-     * specifier into a linear offset.  Tegra GPIO controllers encode
-     * port and pin in args[0] and of_xlate sums per-port pin counts
-     * to produce the real offset.
-     */
-    {
-        struct gpio_chip *chip = gpio_device_get_chip(gdev);
-        int hwgpio;
-
-#if defined(CONFIG_OF_GPIO)
-        if (chip->of_xlate)
-            hwgpio = chip->of_xlate(chip, &gpiospec, NULL);
-        else
-#endif
-            hwgpio = gpiospec.args[0];
-
-        if (hwgpio < 0) {
-            gpio_device_put(gdev);
-            return hwgpio;
-        }
-
-        desc = gpio_device_get_desc(gdev, hwgpio);
+    hwgpio = __to_hwgpio(gdev, &gpiospec);
+    if (hwgpio < 0) {
+        gpio_device_put(gdev);
+        return hwgpio;
     }
+
+    desc = gpio_device_get_desc(gdev, hwgpio);
     gpio_device_put(gdev);
 
     if (IS_ERR(desc))
