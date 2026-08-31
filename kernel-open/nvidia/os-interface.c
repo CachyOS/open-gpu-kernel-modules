@@ -52,6 +52,8 @@
 #include <linux/cgroup_dmem.h>
 #endif // NV_DMEM_CGROUP_PRESENT
 
+#include <linux/version.h>
+
 extern char *NVreg_TemporaryFilePath;
 
 #define MAX_ERROR_STRING 528
@@ -2817,7 +2819,15 @@ NvU32 NV_API_CALL os_cgroup_implementation(void)
 
 void* NV_API_CALL os_dmem_cgroup_register_region(NvU64 size, const char *name)
 {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(7, 3, 0)
+    struct dmem_cgroup_init init = {
+        .size = size
+    };
+
+    void *region = dmem_cgroup_register_region(&init, name);
+#else
     void *region = dmem_cgroup_register_region(size, name);
+#endif
     if (IS_ERR(region))
     {
         return NULL;
